@@ -283,7 +283,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     el("feDropShadow", { dx: "2", dy: "3", stdDeviation: "2", "flood-color": "#000", "flood-opacity": "0.25" }, f2);
 
     // display rebaixado só atrás da escala; a agulha passa por cima dele
-    const DX = 4, DY = -33, DW = 392, DH = 243, DR = 22;
+    const DX = 4, DY = -33, DW = 392, DH = 316, DR = 22; // o display desce até perto do poço
     const dc = el("clipPath", { id: "displayClip" }, defs);
     el("rect", { x: DX, y: DY, width: DW, height: DH, rx: DR }, dc);
     const fd = el("filter", { id: "displayBlur", filterUnits: "userSpaceOnUse", x: "-40", y: "-100", width: "480", height: "460" }, defs);
@@ -342,7 +342,8 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     // no display: o alvo em Hz em cima do zero e a frequência tocada no meio, entre a marcação de afinado e o volume
     alvoTopo = el("text", { x: PX, y: ((PY - (RE + 16) - 13 * .7) + (DY + 7)) / 2 + 15 * .7 / 2, /* no meio entre a borda do display e o topo do "0" */ "text-anchor": "middle", style: "fill:var(--ink-2);font:500 15px var(--f-mono);letter-spacing:.04em" }, dial); // metade dos 30 px da frequência do meio
     centsCanto = el("text", { x: 4 + 392 - 18, y: -33 + 26, "text-anchor": "end", style: "fill:var(--ink-2);font:500 13px var(--f-mono);letter-spacing:.04em" }, dial);
-    hzMeio = el("text", { x: PX, y: (PY - (RE - 30) + DY + DH - 42) / 2 + 11, "text-anchor": "middle", style: "fill:var(--ink);font:600 30px var(--f-display);letter-spacing:-.02em" }, dial);
+    const fimEscala = PY - (RE - 18) * Math.cos(ABERTURA * Math.PI / 180); // ponta mais baixa da escala (−50 e +50)
+    hzMeio = el("text", { x: PX, y: (fimEscala + DY + DH - 42) / 2 + 13, /* no meio entre o fim da escala e o volume */ "text-anchor": "middle", style: "fill:var(--ink);font:600 30px var(--f-display);letter-spacing:-.02em" }, dial);
 
     // campo cavado ao redor do botão (luz e sombra, sem borda)
     const W = 81; // poço do botão da agulha
@@ -752,7 +753,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   function descer() {
     // logo colada no display (o mesmo vão do nome aos botões) e três espaços iguais no resto
     const vb = dial.viewBox.baseVal, topo = document.querySelector(".topo"), ap = document.querySelector(".aparelho");
-    const topoDisp = -33, D = 243, W = 81 * 2 + 3, g = (PY - 81) - (topoDisp + D); // g: display → poço, fixo pelo comprimento da agulha
+    const topoDisp = -33, D = 316, W = 81 * 2 + 3, g = (PY - 81) - (topoDisp + D); // g: display → poço, fixo pelo comprimento da agulha
     topo.style.transform = ""; dial.style.transform = "";
     const H = ap.clientHeight, cw = Math.max(caixa.clientWidth, ap.clientWidth - 16); // o display pode chegar a 8 px da borda
     const traco = document.getElementById("traco"), cor = document.querySelector(".cor");
