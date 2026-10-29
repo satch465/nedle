@@ -426,7 +426,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 
   let modo = "iniciando";               // iniciando | toque | ouvindo | bloqueado | demo
   let actx = null, analyser = null, buf = null, sq = null;
-  let notaMidi = null, mSuave = null, ultimoSom = 0, quadro = 0, parado = false;
+  let notaMidi = null, mSuave = null, ultimoSom = 0, ultimoAudivel = 0, quadro = 0, parado = false;
   const janela = [];                    // últimas leituras, para a mediana
 
   function detectar(x, sr) {
@@ -482,7 +482,10 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
       mSuave = med;
       ultimoSom = agora;
       parado = false;
-    } else if (agora - ultimoSom > SILENCIO_MS) {
+    }
+    // a nota continua "soando" enquanto houver volume, mesmo que a leitura falhe no fim da corda
+    if (ultimoRms >= SENS[cfg.sens] * 0.6) ultimoAudivel = agora;
+    if (agora - Math.max(ultimoSom, ultimoAudivel) > SILENCIO_MS) {
       janela.length = 0; parado = true; // a agulha fica onde parou, a nota apaga um pouco
     }
   }
@@ -579,7 +582,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     pos += vel * dt;
     agulha.setAttribute("transform", `rotate(${angDeCents(pos)} ${PX} ${PY})`);
     // silêncio: sem som entrando, a agulha e a marcação de afinado ficam cinza
-    dial.classList.toggle("silencio", modo === "ouvindo" && !ligando && (parado || notaMidi === null));
+    dial.classList.toggle("silencio", modo === "ouvindo" && !ligando && (notaMidi === null || (parado && !afinadoFirme))); // a agulha só apaga junto com o poço
     if (temNota) {
       const nome = NOMES[((notaMidi % 12) + 12) % 12], oit = Math.floor(notaMidi / 12) - 1;
       // o anel segue a última leitura: se a corda parou afinada, ele fica aceso
