@@ -517,7 +517,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 
   // ---- agulha: mola com amortecimento, para ter peso e não tremer ----
   let pos = -50, vel = 0, ultimo = performance.now();
-  let afinadoDesde = null, afinadoFirme = false;
+  let afinadoDesde = null, afinadoFirme = false, foraDesde = null, notaDoAnel = null;
   // vibração ao afinar: no Android usa a vibração do navegador; no iPhone, o toque de um
   // interruptor escondido (o iOS dá um toque tátil nele). Se o aparelho não deixar, nada acontece.
   const tatil = document.createElement("label");
@@ -548,8 +548,15 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     agulha.setAttribute("transform", `rotate(${angDeCents(pos)} ${PX} ${PY})`);
     if (temNota) {
       const nome = NOMES[((notaMidi % 12) + 12) % 12], oit = Math.floor(notaMidi / 12) - 1;
-      if (!parado && Math.abs(cents) < cfg.faixa) { if (afinadoDesde === null) afinadoDesde = agora; }
-      else if (parado || Math.abs(cents) > cfg.faixa * 2) afinadoDesde = null;
+      // o anel segue a última leitura: se a corda parou afinada, ele fica aceso
+      if (notaMidi !== notaDoAnel) { notaDoAnel = notaMidi; afinadoDesde = null; foraDesde = null; }
+      if (!parado) {
+        if (Math.abs(cents) < cfg.faixa) { if (afinadoDesde === null) afinadoDesde = agora; foraDesde = null; }
+        else if (Math.abs(cents) > cfg.faixa * 2) {
+          if (foraDesde === null) foraDesde = agora;
+          if (agora - foraDesde > 150) afinadoDesde = null; // só apaga se sair do ponto por um instante
+        } else foraDesde = null;
+      }
       const firme = afinadoDesde !== null && agora - afinadoDesde > 220;
       if (firme && !afinadoFirme) vibrar();
       afinadoFirme = firme;
