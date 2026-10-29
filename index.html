@@ -160,6 +160,8 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 .abertura-logo { pointer-events: none; animation: surgir .5s ease-out both; }
 @keyframes surgir { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
 /* lâmpada do display: acende piscando, como num rádio antigo */
+.anel { opacity: 0; transition: opacity .18s ease-out; }
+.anel.acesa { opacity: 1; }
 .lampada { opacity: 0; }
 .lampada.acesa { animation: acender 1.1s ease-out forwards; }
 @keyframes acender { 0% { opacity: 0; } 12% { opacity: .55; } 20% { opacity: .15; } 34% { opacity: .8; } 44% { opacity: .5; } 100% { opacity: 1; } }
@@ -222,7 +224,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   };
   const angDeCents = c => Math.max(-1, Math.min(1, c / 50)) * ABERTURA;
 
-  let agulha, notaSvg;
+  let agulha, notaSvg, anel;
   function desenhar() {
     const defs = el("defs", {}, dial);
     const g1 = el("radialGradient", { id: "pivoGrad", cx: "38%", cy: "32%", r: "75%" }, defs);
@@ -296,6 +298,13 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     // fresta escura colada no botão
     el("circle", { cx: PX + 2, cy: PY + 3, r: RB + 3, fill: "none", stroke: "#000", "stroke-opacity": ".3", "stroke-width": 4, filter: "url(#pocoBlur2)" }, poco);
 
+    // anel de luz no fundo do poço: acende firme quando a corda está afinada
+    const fa = el("filter", { id: "anelBrilho", filterUnits: "userSpaceOnUse", x: PX - W - 30, y: PY - W - 30, width: 2 * W + 60, height: 2 * W + 60 }, defs);
+    el("feGaussianBlur", { stdDeviation: "5" }, fa);
+    anel = el("g", { class: "anel" }, dial);
+    el("circle", { cx: PX, cy: PY, r: RB + 12, fill: "none", style: "stroke:var(--accent)", "stroke-width": 9, filter: "url(#anelBrilho)", opacity: .75 }, anel);
+    el("circle", { cx: PX, cy: PY, r: RB + 12, fill: "none", style: "stroke:var(--accent)", "stroke-width": 2.5 }, anel);
+
     // ponteiro: linha laranja reta, ponta arredondada, com brilho
     const fg = el("filter", { id: "brilho", filterUnits: "userSpaceOnUse", x: "-40", y: "-40", width: "480", height: "520" }, defs);
     el("feGaussianBlur", { in: "SourceGraphic", stdDeviation: "2.5", result: "b0" }, fg);
@@ -344,7 +353,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 
   let modo = "iniciando";               // iniciando | toque | ouvindo | bloqueado | demo
   let actx = null, analyser = null, buf = null, sq = null;
-  let notaMidi = null, mSuave = null, ultimoSom = 0, quadro = 0;
+  let notaMidi = null, mSuave = null, ultimoSom = 0, quadro = 0, parado = false;
   const janela = [];                    // últimas leituras, para a mediana
 
   function detectar(x, sr) {
@@ -397,8 +406,9 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
       if (notaMidi === null || Math.abs(med - notaMidi) > 0.62) notaMidi = Math.round(med);
       mSuave = med;
       ultimoSom = agora;
+      parado = false;
     } else if (agora - ultimoSom > SILENCIO_MS) {
-      janela.length = 0; notaMidi = null; mSuave = null;
+      janela.length = 0; parado = true; // a agulha fica onde parou, a nota apaga um pouco
     }
   }
 
@@ -460,6 +470,19 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 
   // ---- agulha: mola com amortecimento, para ter peso e não tremer ----
   let pos = -50, vel = 0, ultimo = performance.now();
+  let afinadoDesde = null, afinadoFirme = false;
+  // vibração ao afinar: no Android usa a vibração do navegador; no iPhone, o toque de um
+  // interruptor escondido (o iOS dá um toque tátil nele). Se o aparelho não deixar, nada acontece.
+  const tatil = document.createElement("label");
+  tatil.innerHTML = '<input type="checkbox" switch>';
+  tatil.style.cssText = "position:fixed;left:-9999px;width:1px;height:1px;overflow:hidden";
+  tatil.setAttribute("aria-hidden", "true");
+  document.body.appendChild(tatil);
+  function vibrar() {
+    if (modo !== "ouvindo") return;
+    try { if (navigator.vibrate && navigator.vibrate(40)) return; } catch (e) {}
+    try { tatil.click(); } catch (e) {}
+  }
   function passo(agora) {
     const dt = Math.min(.05, (agora - ultimo) / 1000); ultimo = agora;
     const desdeLigar = ligadoEm === null ? -1 : agora - ligadoEm;
@@ -477,14 +500,21 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     agulha.setAttribute("transform", `rotate(${angDeCents(pos)} ${PX} ${PY})`);
     if (temNota) {
       const nome = NOMES[((notaMidi % 12) + 12) % 12], oit = Math.floor(notaMidi / 12) - 1;
-      const afinado = Math.abs(cents) < 2;
+      if (!parado && Math.abs(cents) < 2) { if (afinadoDesde === null) afinadoDesde = agora; }
+      else if (parado || Math.abs(cents) > 4) afinadoDesde = null;
+      const firme = afinadoDesde !== null && agora - afinadoDesde > 220;
+      if (firme && !afinadoFirme) vibrar();
+      afinadoFirme = firme;
+      anel.classList.toggle("acesa", firme);
       notaSvg.innerHTML = `${nome}<tspan dx="2" style="font-size:15px;font-weight:500">${oit}</tspan>`;
-      notaSvg.style.fill = afinado ? "var(--accent)" : "var(--knob-tinta)";
+      notaSvg.style.fill = firme ? "var(--accent)" : "var(--knob-tinta)";
+      notaSvg.style.opacity = parado ? .45 : 1;
       elHz.textContent = fmt(ref * Math.pow(2, (mSuave - 69) / 12));
       const c = Math.round(cents);
       elCents.textContent = (c > 0 ? "+" : c < 0 ? "−" : "") + Math.abs(c);
     } else {
-      notaSvg.textContent = "–"; notaSvg.style.fill = "var(--knob-tinta)";
+      notaSvg.textContent = "–"; notaSvg.style.fill = "var(--knob-tinta)"; notaSvg.style.opacity = 1;
+      afinadoDesde = null; afinadoFirme = false; anel.classList.remove("acesa");
       elHz.textContent = "—"; elCents.textContent = "0";
     }
     requestAnimationFrame(passo);
