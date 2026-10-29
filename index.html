@@ -91,7 +91,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 .aparelho > .leitura { position: absolute; left: 0; right: 0; bottom: max(18px, env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; display: flex; justify-content: center; padding-inline: 24px; pointer-events: none; }
 .leitura .aviso { max-width: 34ch; text-align: center; }
 
-.topo { display: flex; justify-content: flex-start; padding: 4px 0 0 2px; }
+.topo { display: flex; justify-content: flex-end; padding: 4px 0 0 2px; }
 /* nome, subnome e botões formam um bloco com as mesmas bordas */
 .logo { display: inline-grid; gap: 2px; --traco: .1em; font-size: 76px; }
 .logo b { font-family: var(--f-display); font-weight: 600; font-size: 1em; line-height: .86; letter-spacing: -.035em; display: flex; align-items: baseline; }
@@ -767,8 +767,10 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     dial.style.width = (vb.width * k).toFixed(1) + "px";
     dial.style.height = (vb.height * k).toFixed(1) + "px";
     topo.style.transform = `translateY(${(G - logoTopo).toFixed(1)}px)`;
-    const dispAgora = rr(dial).top + (topoDisp - vb.y) * k;
-    dial.style.transform = `translateY(${(G + logoH + p - dispAgora).toFixed(1)}px)`;
+    const d = rr(dial), a = rr(ap);
+    const dispAgora = d.top + (topoDisp - vb.y) * k;
+    const dx = (a.left + a.width / 2) - (d.left + d.width / 2); // centrado na tela: mesma distância nas duas laterais
+    dial.style.transform = `translate(${dx.toFixed(1)}px, ${(G + logoH + p - dispAgora).toFixed(1)}px)`;
   }
   addEventListener("resize", descer);
   // rodapé alinhado às laterais do display: a leitura de Hz começa na borda esquerda dele e o "+" termina na direita
