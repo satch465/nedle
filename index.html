@@ -751,7 +751,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   const caixa = dial.parentElement;
   // logo, display e botão da agulha com o mesmo espaço entre eles e até a borda de baixo
   function descer() {
-    // logo colada no display (o mesmo vão do nome aos botões) e três espaços iguais no resto
+    // logo perto do display, com o mesmo vão que separa o display do poço
     const vb = dial.viewBox.baseVal, topo = document.querySelector(".topo"), ap = document.querySelector(".aparelho");
     const topoDisp = -33, D = 316, W = 81 * 2 + 3, g = (PY - 81) - (topoDisp + D); // g: display → poço, fixo pelo comprimento da agulha
     topo.style.transform = ""; dial.style.transform = "";
@@ -760,11 +760,11 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     if (!H || !cw || !traco || !cor) return;
     const logoTopo = rr(traco).top, logoBase = rr(cor).bottom - 5; // tinta do "l" e borda visível do botão
     const logoH = logoBase - logoTopo;
-    const p = (rr(cor).top + 5) - rr(traco).bottom;          // vão entre o nome e os botões; o mesmo vão vai dos botões ao display
-    // três espaços iguais: topo da tela → logo, display → poço, poço → fim da tela
-    const kAltura = (H - logoH - p) / (3 * g + D + W);
+    // botões → display igual a display → poço; topo da tela → logo igual a poço → fim da tela
+    const kAltura = (H - logoH) / (4 * g + D + W);
     const k = Math.max(.3, Math.min(cw / vb.width, 440 / vb.width, kAltura));
-    const G = (H - logoH - p - (D + W + g) * k) / 2;        // se a largura limitar, topo e fim continuam iguais
+    const p = g * k;
+    const G = (H - logoH - (D + W + 2 * g) * k) / 2;
     dial.style.width = (vb.width * k).toFixed(1) + "px";
     dial.style.height = (vb.height * k).toFixed(1) + "px";
     topo.style.transform = `translateY(${(G - logoTopo).toFixed(1)}px)`;
