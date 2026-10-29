@@ -263,7 +263,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   };
   const angDeCents = c => Math.max(-1, Math.min(1, c / 50)) * ABERTURA;
 
-  let agulha, notaSvg, anel; const medidores = {};
+  let agulha, notaSvg, anel, alvoSvg; const medidores = {};
   function desenhar() {
     const defs = el("defs", {}, dial);
     const g1 = el("radialGradient", { id: "pivoGrad", cx: "38%", cy: "32%", r: "75%" }, defs);
@@ -386,7 +386,9 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     const RT = RB - 9;
     el("circle", { cx: PX, cy: PY, r: RT, style: "fill:url(#knobGrad)", filter: "url(#sombraTopo)" }, k);
     el("circle", { cx: PX, cy: PY, r: RT - .7, fill: "none", style: "stroke:var(--knob-brilho)", "stroke-width": 1 }, k);
-    notaSvg = el("text", { x: PX, y: PY + 12, "text-anchor": "middle", style: "fill:var(--knob-tinta);font:800 34px var(--f-display);letter-spacing:-.03em" }, dial);
+    notaSvg = el("text", { x: PX, y: PY + 8, "text-anchor": "middle", style: "fill:var(--knob-tinta);font:800 34px var(--f-display);letter-spacing:-.03em" }, dial);
+    // legenda temporária: a frequência que a nota precisa alcançar
+    alvoSvg = el("text", { x: PX, y: PY + 25, "text-anchor": "middle", style: "fill:var(--knob-tinta);opacity:.5;font:500 9px var(--f-mono);letter-spacing:.04em" }, dial);
   }
 
   // ================= motor de afinação =================
@@ -585,11 +587,13 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
       notaSvg.innerHTML = `${nome}<tspan dx="2" style="font-size:15px;font-weight:500">${oit}</tspan>`;
       notaSvg.style.fill = firme ? "var(--accent)" : "var(--knob-tinta)";
       notaSvg.style.opacity = parado ? .45 : 1;
+      alvoSvg.textContent = fmt(ref * Math.pow(2, (notaMidi - 69) / 12));
       elHz.textContent = fmt(ref * Math.pow(2, (mSuave - 69) / 12));
       const c = afinadoDesde !== null ? 0 : Math.round(cents);
       elCents.textContent = (c > 0 ? "+" : c < 0 ? "−" : "") + Math.abs(c);
     } else {
       notaSvg.textContent = "–"; notaSvg.style.fill = "var(--knob-tinta)"; notaSvg.style.opacity = 1;
+      alvoSvg.textContent = "";
       afinadoDesde = null; afinadoFirme = false; anel.classList.remove("acesa");
       elHz.textContent = "—"; elCents.textContent = "0";
     }
