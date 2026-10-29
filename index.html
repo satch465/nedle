@@ -295,14 +295,16 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     el("rect", { x: DX - 5, y: DY - 6, width: DW + 4, height: DH + 4, rx: DR, fill: "none", style: "stroke:var(--glow)", "stroke-width": 6, filter: "url(#displayBlur)", opacity: .35 }, tela);
 
     // medidores no rodapé do display: volume e clareza do que o microfone ouve
-    const MX = DX + 58, MW = DW - 84, MH = 5;
-    [["VOL", DY + DH - 42, "vol"], ["CLAR", DY + DH - 24, "cla"]].forEach(([rot, my, id]) => {
-      el("text", { x: DX + 22, y: my + MH, style: "fill:var(--ink-2);font:500 9px var(--f-mono);letter-spacing:.12em" }, dial).textContent = rot;
+    // sem rótulos: em cima o volume, embaixo a clareza do som
+    const MX = DX + 30, MW = DW - 60, MH = 5;
+    [[DY + DH - 42, "vol"], [DY + DH - 24, "cla"]].forEach(([my, id]) => {
       el("rect", { x: MX, y: my, width: MW, height: MH, rx: MH / 2, style: "fill:var(--poco-borda)" }, dial);
       el("rect", { x: MX + .5, y: my + .5, width: MW - 1, height: MH - 1, rx: MH / 2, fill: "none", stroke: "#000", "stroke-opacity": ".12", "stroke-width": 1 }, dial);
       medidores[id] = {
         barra: el("rect", { x: MX, y: my, width: 0, height: MH, rx: MH / 2, style: "fill:var(--ink-2)" }, dial),
         limite: el("rect", { x: MX, y: my - 2, width: 1.6, height: MH + 4, style: "fill:var(--ink)" }, dial),
+        pico: el("rect", { x: MX, y: my, width: 2.4, height: MH, rx: 1, style: "fill:var(--ink)", opacity: 0 }, dial), // retenção de pico, como no RTA
+        topo: 0, topoEm: 0,
         x: MX, w: MW
       };
     });
@@ -647,16 +649,22 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   veuCalib.addEventListener("click", () => { if (performance.now() - calibAbertaEm > 400) abrirCalib(false); });
   // medidores ao vivo no display: o que o microfone ouve e onde está cada limite
   const escalaVol = v => Math.max(0, Math.min(1, (Math.log10(Math.max(v, 1e-4)) + 4) / 3)); // de 0,0001 a 0,1
-  function pintar(m, valor, limite) {
+  function pintar(m, valor, limite, agora) {
     m.barra.setAttribute("width", (m.w * valor).toFixed(1));
+    // pico: guarda o ponto mais alto por um instante e depois desce devagar
+    if (valor >= m.topo) { m.topo = valor; m.topoEm = agora; }
+    else if (agora - m.topoEm > 1500) m.topo = Math.max(valor, m.topo - 0.004);
+    m.pico.setAttribute("x", (m.x + Math.max(0, m.w * m.topo - 2.4)).toFixed(1));
+    m.pico.setAttribute("opacity", m.topo > 0.01 ? .55 : 0);
     m.limite.setAttribute("x", (m.x + m.w * limite - .8).toFixed(1));
     m.barra.style.fill = valor >= limite && valor > 0 ? "var(--accent)" : "var(--ink-2)";
   }
-  (function medir() {
+  (function medir(agora) {
+    agora = agora || performance.now();
     if (medidores.vol) {
       const ouvindo = modo === "ouvindo";
-      pintar(medidores.vol, ouvindo ? escalaVol(ultimoRms) : 0, escalaVol(SENS[cfg.sens]));
-      pintar(medidores.cla, ouvindo ? Math.max(0, ultimaClareza) : 0, cfg.clareza);
+      pintar(medidores.vol, ouvindo ? escalaVol(ultimoRms) : 0, escalaVol(SENS[cfg.sens]), agora);
+      pintar(medidores.cla, ouvindo ? Math.max(0, ultimaClareza) : 0, cfg.clareza, agora);
     }
     requestAnimationFrame(medir);
   })();
