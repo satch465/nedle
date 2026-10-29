@@ -656,9 +656,9 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   let calibAbertaEm = 0;
   const abrirCalib = v => { calib.hidden = !v; veuCalib.hidden = !v; calibAbertaEm = v ? performance.now() : 0; };
   // o botão da agulha abre os ajustes
-  const knob = dial.querySelector(".knob-botao");
-  knob.addEventListener("click", () => abrirCalib(true));
-  knob.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirCalib(true); } });
+  // (o botão é desenhado depois, então o clique é ouvido no mostrador inteiro e filtrado pelo botão)
+  dial.addEventListener("click", e => { if (e.target.closest && e.target.closest(".knob-botao")) abrirCalib(true); });
+  dial.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest(".knob-botao")) { e.preventDefault(); abrirCalib(true); } });
   veuCalib.addEventListener("click", () => { if (performance.now() - calibAbertaEm > 400) abrirCalib(false); });
   // medidores ao vivo no display: o que o microfone ouve e onde está cada limite
   const escalaVol = v => Math.max(0, Math.min(1, (Math.log10(Math.max(v, 1e-4)) + 4) / 3)); // de 0,0001 a 0,1
