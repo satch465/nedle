@@ -402,7 +402,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   // ajustes finos, mexidos pela gaveta de calibragem (tocar na leitura de Hz)
   const SENS = [0.012, 0.008, 0.0055, 0.0038, 0.0026, 0.0018, 0.0012, 0.0008]; // volume mínimo, do menos ao mais sensível
   const PESOS = [[90, 15], [55, 11.5], [32, 8.6], [18, 6.4]]; // mola e amortecimento da agulha: leve → pesada
-  const PADRAO = { sens: 5, clareza: 0.6, estab: 5, peso: 1, faixa: 2 };
+  const PADRAO = { sens: 5, clareza: 0.6, estab: 5, peso: 1, faixa: 3 };
   let cfg = { ...PADRAO };
   try { Object.assign(cfg, JSON.parse(localStorage.getItem("nedle-ajustes") || "{}")); } catch (e) {}
   let ultimoRms = 0, ultimaClareza = 0;
@@ -552,7 +552,11 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     }
     let alvo = -50, temNota = !ligando && notaMidi !== null && mSuave !== null;
     let cents = 0;
-    if (temNota) { cents = (mSuave - notaMidi) * 100; alvo = Math.max(-50, Math.min(50, cents)); }
+    if (temNota) {
+      cents = (mSuave - notaMidi) * 100; alvo = Math.max(-50, Math.min(50, cents));
+      // dentro da faixa de afinado a agulha é "puxada" para o centro e para na marcação laranja
+      if (afinadoDesde !== null && notaMidi === notaDoAnel) alvo = 0;
+    }
     else if (desdeLigar >= 0 && desdeLigar < 420) alvo = 58; // o pico de quando o aparelho liga
     const [mola, amort] = PESOS[cfg.peso];
     vel += ((alvo - pos) * mola - vel * amort) * dt;
@@ -577,7 +581,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
       notaSvg.style.fill = firme ? "var(--accent)" : "var(--knob-tinta)";
       notaSvg.style.opacity = parado ? .45 : 1;
       elHz.textContent = fmt(ref * Math.pow(2, (mSuave - 69) / 12));
-      const c = Math.round(cents);
+      const c = afinadoDesde !== null ? 0 : Math.round(cents);
       elCents.textContent = (c > 0 ? "+" : c < 0 ? "−" : "") + Math.abs(c);
     } else {
       notaSvg.textContent = "–"; notaSvg.style.fill = "var(--knob-tinta)"; notaSvg.style.opacity = 1;
