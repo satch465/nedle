@@ -85,6 +85,8 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   transition: background .35s ease;
 }
 .aparelho > * { width: 100%; max-width: 480px; margin-inline: auto; }
+/* app instalado: o iOS desenha um esmaecido no topo da tela, embaixo da barra de status; a logo desce para ficar fora dele */
+@media (display-mode: standalone) { .aparelho { padding-top: 40px; } }
 .aparelho > .topo, .aparelho > .leitura { margin-inline: 0; }
 
 .topo { display: flex; justify-content: flex-end; padding: 4px 0 0 2px; }
