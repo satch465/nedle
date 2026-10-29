@@ -384,7 +384,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   let ref = 440;
   const elHz = document.getElementById("hz"), elCents = document.getElementById("cents");
   const elLinha = document.getElementById("linha"), elAviso = document.getElementById("aviso");
-  const fmt = n => n.toFixed(2).replace(".", ",");
+  const fmt = n => n.toFixed(1).replace(".", ","); // uma casa depois da vírgula, como o afinador do Cifra Club
 
   const F_MIN = 38, F_MAX = 1400;       // do Mi grave do baixo até as agudas da guitarra
   // ajustes finos, mexidos pela gaveta de calibragem (tocar na leitura de Hz)
