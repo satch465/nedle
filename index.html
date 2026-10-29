@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#E3DECD">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Nedle">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="icon" href="icone-192.png">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;height:100%}
+body{margin:0;font:14px/1.4 -apple-system,system-ui,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>Nedle</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Hanken+Grotesk:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: o celular é o aparelho — painel com borda fina, ponteiro laranja solto sobre a escala, nota logo abaixo do pivô e a roda da referência na lateral. Cores, tipos e relevo do sistema Lucas Braun. */
+:root {
+  --luz: #FFC46B; --luz-a: 0; --luz-b: 0; --luz-c: 0;
+  --fora: #ABA9A4;
+  --bg: #D5D0BF; --panel: #E3DECD; --card: #EEE9D8; --line: #B9B29E;
+  --ink: #23211C; --ink-2: #54503F;
+  --accent: #DC5019;
+  --shade: rgba(70,60,40,.40); --glow: rgba(255,255,255,.80);
+  --agulha: #23211C; --pivo: #C9C3B0; --pivo-luz: #F6F2E6;
+  --knob: #1E2024; --knob-luz: #3A3D43; --knob-lado: #121316; --knob-brilho: rgba(255,255,255,.10); --knob-tinta: #ECEDEF;
+  --poco: #DFDAC8; --poco-borda: #D6D0BD; --ponteiro-luz: #FFC9A8;
+  --relief: 5px 1.5px 10px var(--shade), -5px -1.5px 10px var(--glow);
+  --relief-pressed: 2px 1px 5px var(--shade), -2px -1px 5px var(--glow);
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+:root[data-tema="verde"] {
+  --luz: #FFC66E; --luz-a: .62; --luz-b: .42; --luz-c: .26;
+  --fora: #4A4D4F; /* chumbo */
+  --bg: #8F9B8E; --panel: #97A396; --card: #A3AEA1; --line: #6F7B6E;
+  --ink: #1E221D; --ink-2: #39413A;
+  --accent: #C93A2A;
+  --shade: rgba(28,36,27,.45); --glow: rgba(236,242,232,.38);
+  --agulha: #1E221D; --pivo: #C4C0B0; --pivo-luz: #F1EEE2;
+  --knob: #1F2321; --knob-luz: #3B403C; --knob-lado: #121513;
+  --poco: #94A093; --poco-borda: #8C988B;
+  color-scheme: light;
+}
+:root[data-tema="escuro"] {
+  --luz: #FFB955; --luz-a: .55; --luz-b: .36; --luz-c: .22;
+  --fora: #17191C;
+  --bg: #353A42; --panel: #3C4149; --card: #444A53; --line: #262A30;
+  --ink: #E8EAEC; --ink-2: #A1A7AF;
+  --accent: #E3BE3F;
+  --shade: rgba(10,12,16,.55); --glow: rgba(255,255,255,.07);
+  --agulha: #D9DCE0; --pivo: #262A30; --pivo-luz: #3E434B;
+  --knob: #1B1E23; --knob-luz: #343840; --knob-lado: #0E1013; --knob-brilho: rgba(255,255,255,.09);
+  --poco: #3A3F47; --poco-borda: #353A41;
+  color-scheme: dark;
+}
+* { touch-action: pan-x pan-y; }
+html, body { height: 100%; }
+body { background: var(--panel); color: var(--ink); font-family: var(--f-body); -webkit-tap-highlight-color: transparent; transition: background .35s ease, color .35s ease; }
+.moldura { height: 100%; box-sizing: border-box; display: grid; }
+/* teste: o afinador ocupa a tela inteira, sem moldura, sem grade e sem borda */
+.aparelho {
+  width: 100%; box-sizing: border-box; background: var(--panel);
+  display: grid; grid-template-rows: auto 1fr auto; gap: 16px; position: relative;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 20px;
+  transition: background .35s ease;
+}
+.aparelho > * { width: 100%; max-width: 480px; margin-inline: auto; }
+
+.topo { display: flex; justify-content: flex-end; padding: 4px 0 0 2px; }
+/* nome, subnome e botões formam um bloco com as mesmas bordas */
+.logo { display: inline-grid; gap: 2px; --traco: .085em; font-size: 76px; }
+.logo b { font-family: var(--f-display); font-weight: 600; font-size: 1em; line-height: .86; letter-spacing: -.035em; display: flex; align-items: baseline; }
+.traco { display: inline-block; width: var(--traco); height: .735em; background: var(--accent); margin: 0 .05em 0 .055em; }
+.logo-pe { display: flex; justify-content: flex-end; font-size: 14px; }
+.ultimo { position: relative; }
+.sub { position: absolute; left: 50%; bottom: calc(76px * .62); transform: translateX(-50%); line-height: 1; white-space: nowrap; padding-left: .12em; font-family: var(--f-mono); font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+.tecla {
+  appearance: none; border: 0; cursor: pointer;
+  font: 500 11px/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink); background: var(--bg);
+  border-radius: 26px; box-shadow: var(--relief);
+  transition: transform .08s, box-shadow .08s;
+}
+.tecla:active, .tecla[aria-pressed="true"] { box-shadow: var(--relief-pressed); transform: scale(.985); }
+.tecla:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cores { display: flex; gap: 2px; margin-right: -5px; justify-content: space-between; }
+.cor {
+  appearance: none; border: 0; padding: 0; cursor: pointer; background: transparent;
+  width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+}
+.cor::before { content: ""; grid-area: 1 / 1; border-radius: 50%; transition: transform .1s, box-shadow .1s; }
+.cor::before { /* corpo fosco, como as teclas do rádio: aro preto fino, borda de cima pegando luz, sombra para baixo à direita */
+  width: 32px; height: 32px;
+  /* topo afundado de leve, como marca de dedo: sombra suave que some sem borda */
+  background:
+    radial-gradient(circle at 41% 37%, rgba(0,0,0,.28) 0%, rgba(0,0,0,.11) 27%, rgba(0,0,0,0) 45%),
+    radial-gradient(circle at 60% 65%, rgba(255,255,255,.4) 0%, rgba(255,255,255,.14) 23%, rgba(255,255,255,0) 41%),
+    linear-gradient(172deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,0) 38%, rgba(0,0,0,0) 62%, rgba(0,0,0,.2) 100%),
+    var(--c);
+  box-shadow:
+    0 0 0 1.5px rgba(18,19,20,.5),
+    inset 0 2px 1.5px rgba(255,255,255,.38),
+    inset 0 -2px 3px rgba(0,0,0,.24),
+    4px 6px 7px var(--shade);
+}
+.cor[aria-pressed="true"]::before {
+  transform: translateY(1.5px) scale(.97);
+  box-shadow:
+    0 0 0 1.5px rgba(18,19,20,.5),
+    inset 0 2px 1.5px rgba(255,255,255,.22),
+    inset 0 -1px 2px rgba(0,0,0,.2),
+    inset 0 0 5px rgba(0,0,0,.18),
+    1px 2px 3px var(--shade);
+}
+.cor:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+
+.mostrador { display: grid; place-items: center; min-height: 0; }
+.mostrador svg { width: 100%; max-width: 420px; max-height: 100%; overflow: visible; }
+
+.leitura { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding-left: 4px; }
+.nota-bloco { grid-column: 1; display: grid; justify-items: start; gap: 6px; min-width: 0; }
+.hz { font-family: var(--f-mono); font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hz b { color: var(--ink); font-weight: 600; }
+.aviso { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; color: var(--ink-2); line-height: 1.35; max-width: 22ch; }
+
+.ref { grid-column: 2; justify-self: end; display: grid; justify-items: center; gap: 8px; }
+/* referência no canto inferior direito, no mesmo tipo da leitura de Hz do canto esquerdo */
+.ref-ctl { position: relative; display: flex; align-items: center; margin-right: -14px; font-family: var(--f-mono); font-size: 14px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.ref-txt { white-space: nowrap; }
+.ref-txt b { color: var(--ink); font-weight: 600; }
+.ref-sinal { width: 44px; text-align: center; font-size: 18px; color: var(--ink-2); transition: color .1s; }
+/* áreas de toque grandes: a metade esquerda diminui, a direita aumenta */
+.ref-zona { appearance: none; border: 0; background: transparent; padding: 0; cursor: pointer; position: absolute; top: -26px; bottom: -26px; }
+.ref-zona.menos { left: -48px; right: 50%; }
+.ref-zona.mais { left: 50%; right: -6px; }
+.ref-zona:focus-visible { outline: 2px solid var(--accent); outline-offset: -8px; border-radius: 12px; }
+.ref-ctl.menos .ref-sinal:first-child, .ref-ctl.mais .ref-sinal:nth-child(3) { color: var(--accent); }
+
+
+@media (max-height: 640px) { .aparelho { gap: 8px; padding-block: 14px; } }
+/* abertura: só a logo no centro, sem moldura */
+.abertura { position: fixed; inset: 0; z-index: 30; background: var(--panel); display: grid; place-content: center; justify-items: center; gap: 18px; transition: opacity .45s ease; }
+.abertura.saindo { opacity: 0; }
+.abertura-logo { pointer-events: none; animation: surgir .5s ease-out both; }
+@keyframes surgir { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+/* lâmpada do display: acende piscando, como num rádio antigo */
+.lampada { opacity: 0; }
+.lampada.acesa { animation: acender 1.1s ease-out forwards; }
+@keyframes acender { 0% { opacity: 0; } 12% { opacity: .55; } 20% { opacity: .15; } 34% { opacity: .8; } 44% { opacity: .5; } 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .lampada { opacity: 1; } .lampada.acesa { animation: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="moldura">
+  <div class="aparelho">
+    <header class="topo">
+      <div class="logo">
+        <b aria-label="nedle"><span aria-hidden="true">n</span><span id="e1" aria-hidden="true">e</span><span aria-hidden="true">d</span><i class="traco" id="traco" aria-hidden="true"></i><span class="ultimo" aria-hidden="true">e<span class="sub">tuner</span></span></b>
+        <div class="logo-pe">
+          <div class="cores" role="group" aria-label="Cor do aparelho">
+            <button class="cor" data-tema="claro" aria-pressed="true" aria-label="Claro" style="--c:#D5D0BF"></button>
+            <button class="cor" data-tema="verde" aria-pressed="false" aria-label="Verde" style="--c:#8F9B8E"></button>
+            <button class="cor" data-tema="escuro" aria-pressed="false" aria-label="Escuro" style="--c:#3A3F47"></button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="mostrador">
+      <svg id="dial" viewBox="0 -41 400 523" role="img" aria-label="Mostrador com agulha"></svg>
+    </div>
+
+    <div class="leitura">
+      <div class="nota-bloco" aria-live="polite">
+        <div class="hz" id="linha"><b id="hz">—</b> Hz · <span id="cents">0</span> cents</div>
+        <div class="aviso" id="aviso" hidden></div>
+      </div>
+      <div class="ref">
+        <div class="ref-ctl" id="roda" role="group" aria-label="Referência do Lá"><span class="ref-sinal" aria-hidden="true">−</span><span class="ref-txt" aria-live="polite"><b id="ref-num">440</b> Hz</span><span class="ref-sinal" aria-hidden="true">+</span><button class="ref-zona menos" id="ref-menos" aria-label="Diminuir referência"></button><button class="ref-zona mais" id="ref-mais" aria-label="Aumentar referência"></button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="abertura" id="abertura" aria-hidden="true">
+  <div class="abertura-logo"></div>
+</div>
+
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const dial = document.getElementById("dial");
+  // pivô na base do mostrador, logo acima da nota; agulha longa até a escala
+  const PX = 200, PY = 390, R = 348, ABERTURA = 29, RB = 51, RE = 330;
+
+  const el = (tag, attrs, pai) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (pai) pai.appendChild(n);
+    return n;
+  };
+  const ponto = (ang, r) => {
+    const a = (ang - 90) * Math.PI / 180;
+    return [PX + r * Math.cos(a), PY + r * Math.sin(a)];
+  };
+  const angDeCents = c => Math.max(-1, Math.min(1, c / 50)) * ABERTURA;
+
+  let agulha, notaSvg;
+  function desenhar() {
+    const defs = el("defs", {}, dial);
+    const g1 = el("radialGradient", { id: "pivoGrad", cx: "38%", cy: "32%", r: "75%" }, defs);
+    el("stop", { offset: "0%", style: "stop-color:var(--pivo-luz)" }, g1);
+    el("stop", { offset: "100%", style: "stop-color:var(--pivo)" }, g1);
+    const f = el("filter", { id: "sombra", x: "-50%", y: "-20%", width: "200%", height: "140%" }, defs);
+    el("feDropShadow", { dx: "6", dy: "8", stdDeviation: "3.5", "flood-color": "#000", "flood-opacity": "0.26" }, f);
+    const f2 = el("filter", { id: "sombraLeve", x: "-50%", y: "-50%", width: "200%", height: "200%" }, defs);
+    el("feDropShadow", { dx: "2", dy: "3", stdDeviation: "2", "flood-color": "#000", "flood-opacity": "0.25" }, f2);
+
+    // display rebaixado só atrás da escala; a agulha passa por cima dele
+    const DX = 4, DY = -33, DW = 392, DH = 243, DR = 22;
+    const dc = el("clipPath", { id: "displayClip" }, defs);
+    el("rect", { x: DX, y: DY, width: DW, height: DH, rx: DR }, dc);
+    const fd = el("filter", { id: "displayBlur", filterUnits: "userSpaceOnUse", x: "-40", y: "-100", width: "480", height: "460" }, defs);
+    el("feGaussianBlur", { stdDeviation: "5" }, fd);
+    el("rect", { x: DX + 1.5, y: DY + 2, width: DW, height: DH, rx: DR, fill: "none", style: "stroke:var(--glow)", "stroke-width": 2.5, filter: "url(#displayBlur)", opacity: .5 }, dial);
+    const tela = el("g", { "clip-path": "url(#displayClip)" }, dial);
+    el("rect", { x: DX, y: DY, width: DW, height: DH, rx: DR, style: "fill:var(--poco)" }, tela);
+    // lâmpada de dentro do display (só nos temas verde e escuro): luz quente vindo de cima à esquerda
+    const lg = el("radialGradient", { id: "lampada", gradientUnits: "userSpaceOnUse", cx: DX + DW * .22, cy: DY + DH * .12, r: DW * 1.15 }, defs);
+    el("stop", { offset: "0%", style: "stop-color:var(--luz);stop-opacity:var(--luz-a)" }, lg);
+    el("stop", { offset: "50%", style: "stop-color:var(--luz);stop-opacity:var(--luz-b)" }, lg);
+    el("stop", { offset: "100%", style: "stop-color:var(--luz);stop-opacity:var(--luz-c)" }, lg);
+    el("rect", { x: DX, y: DY, width: DW, height: DH, rx: DR, fill: "url(#lampada)", id: "lampada-luz", class: "lampada" }, tela);
+    el("rect", { x: DX + 5, y: DY + 6, width: DW + 4, height: DH + 4, rx: DR, fill: "none", style: "stroke:var(--shade)", "stroke-width": 14, filter: "url(#displayBlur)", opacity: .55 }, tela);
+    el("rect", { x: DX - 5, y: DY - 6, width: DW + 4, height: DH + 4, rx: DR, fill: "none", style: "stroke:var(--glow)", "stroke-width": 6, filter: "url(#displayBlur)", opacity: .35 }, tela);
+
+    const rEsc = RE;
+    for (let c = -50; c <= 50; c += 5) {
+      const ang = angDeCents(c);
+      const maior = c % 10 === 0, centro = c === 0;
+      const len = centro ? 30 : maior ? 18 : 10;
+      const [x1, y1] = ponto(ang, rEsc);
+      const [x2, y2] = ponto(ang, rEsc - len);
+      el("line", { x1, y1, x2, y2,
+        style: `stroke:${centro ? "var(--accent)" : "var(--ink)"}`,
+        "stroke-width": centro ? 4.5 : maior ? 2.2 : 1.3, "stroke-linecap": centro ? "butt" : "round", class: centro ? "traco-svg" : "",
+        opacity: centro || maior ? 1 : .55 }, dial);
+    }
+    const [ax, ay] = ponto(-ABERTURA - 1, rEsc + 8), [bx, by] = ponto(ABERTURA + 1, rEsc + 8);
+    el("path", { d: `M${ax} ${ay} A${rEsc + 8} ${rEsc + 8} 0 0 1 ${bx} ${by}`, fill: "none", style: "stroke:var(--ink)", "stroke-width": 1, opacity: .35 }, dial);
+    [[-50, "−50"], [0, "0"], [50, "+50"]].forEach(([c, t]) => {
+      const [x, y] = ponto(angDeCents(c), rEsc + (c === 0 ? 24 : 16));
+      el("text", { x, y, "text-anchor": "middle", style: "fill:var(--ink-2);font:500 13px var(--f-mono)" }, dial).textContent = t;
+    });
+    [["♭", -ABERTURA + 4], ["♯", ABERTURA - 4]].forEach(([t, ang]) => {
+      const [x, y] = ponto(ang, rEsc - 62);
+      el("text", { x, y, "text-anchor": "middle", style: "fill:var(--ink);font:400 28px var(--f-display)" }, dial).textContent = t;
+    });
+
+    // campo cavado ao redor do botão (luz e sombra, sem borda)
+    const W = 81; // poço do botão da agulha
+    const cp = el("clipPath", { id: "pocoClip" }, defs);
+    el("circle", { cx: PX, cy: PY, r: W }, cp);
+    const fundo = el("radialGradient", { id: "pocoFundo", cx: "50%", cy: "50%", r: "50%" }, defs);
+    el("stop", { offset: "60%", style: "stop-color:var(--poco)" }, fundo);
+    el("stop", { offset: "100%", style: "stop-color:var(--poco-borda)" }, fundo);
+    const fb = el("filter", { id: "pocoBlur", x: "-20%", y: "-20%", width: "140%", height: "140%" }, defs);
+    el("feGaussianBlur", { stdDeviation: "6" }, fb);
+    const fb2 = el("filter", { id: "pocoBlur2", filterUnits: "userSpaceOnUse", x: "-40", y: "-40", width: "480", height: "520" }, defs);
+    el("feGaussianBlur", { stdDeviation: "2.5" }, fb2);
+    // lábio iluminado embaixo à direita, fora do poço
+    el("circle", { cx: PX + 2, cy: PY + 3, r: W + 1.5, fill: "none", style: "stroke:var(--glow)", "stroke-width": 2.5, filter: "url(#pocoBlur2)", opacity: .5 }, dial);
+    const poco = el("g", { "clip-path": "url(#pocoClip)" }, dial);
+    el("circle", { cx: PX, cy: PY, r: W, style: "fill:url(#pocoFundo)" }, poco);
+    // parede de cima à esquerda na sombra
+    el("circle", { cx: PX + 4, cy: PY + 5, r: W + 7, fill: "none", style: "stroke:var(--shade)", "stroke-width": 14, filter: "url(#pocoBlur)", opacity: .55 }, poco);
+    // parede de baixo à direita pegando luz
+    el("circle", { cx: PX - 6, cy: PY - 8, r: W + 6, fill: "none", style: "stroke:var(--glow)", "stroke-width": 6, filter: "url(#pocoBlur)", opacity: .35 }, poco);
+    // fresta escura colada no botão
+    el("circle", { cx: PX + 2, cy: PY + 3, r: RB + 3, fill: "none", stroke: "#000", "stroke-opacity": ".3", "stroke-width": 4, filter: "url(#pocoBlur2)" }, poco);
+
+    // ponteiro: linha laranja reta, ponta arredondada, com brilho
+    const fg = el("filter", { id: "brilho", filterUnits: "userSpaceOnUse", x: "-40", y: "-40", width: "480", height: "520" }, defs);
+    el("feGaussianBlur", { in: "SourceGraphic", stdDeviation: "2.5", result: "b0" }, fg);
+    const ct = el("feComponentTransfer", { in: "b0", result: "b" }, fg);
+    el("feFuncA", { type: "linear", slope: "0.35" }, ct);
+    const fm = el("feMerge", {}, fg);
+    el("feMergeNode", { in: "b" }, fm);
+    el("feMergeNode", { in: "SourceGraphic" }, fm);
+    agulha = el("g", {}, dial);
+    el("line", { x1: PX + 4, y1: PY + 5, x2: PX + 4, y2: PY - RE + 5, stroke: "#000", "stroke-opacity": ".22", "stroke-width": 4.5, "stroke-linecap": "butt", filter: "url(#pocoBlur2)", class: "traco-svg" }, agulha);
+    el("line", { x1: PX, y1: PY, x2: PX, y2: PY - RE, style: "stroke:var(--accent)", "stroke-width": 4.5, "stroke-linecap": "butt", filter: "url(#brilho)", class: "traco-svg" }, agulha);
+
+    // botão em dois degraus: base mais larga e disco fosco por cima
+    const kg = el("radialGradient", { id: "knobGrad", cx: "35%", cy: "28%", r: "85%" }, defs);
+    el("stop", { offset: "0%", style: "stop-color:var(--knob-luz)" }, kg);
+    el("stop", { offset: "100%", style: "stop-color:var(--knob)" }, kg);
+    const kb = el("linearGradient", { id: "knobBase", x1: "20%", y1: "10%", x2: "80%", y2: "90%" }, defs);
+    el("stop", { offset: "0%", style: "stop-color:var(--knob)" }, kb);
+    el("stop", { offset: "100%", style: "stop-color:var(--knob-lado)" }, kb);
+    const fk = el("filter", { id: "sombraKnob", x: "-60%", y: "-60%", width: "220%", height: "220%" }, defs);
+    el("feDropShadow", { dx: "8", dy: "12", stdDeviation: "9", "flood-color": "#000", "flood-opacity": "0.42" }, fk);
+    const fk2 = el("filter", { id: "sombraTopo", x: "-30%", y: "-30%", width: "160%", height: "160%" }, defs);
+    el("feDropShadow", { dx: "3", dy: "5", stdDeviation: "4", "flood-color": "#000", "flood-opacity": "0.5" }, fk2);
+    const k = el("g", {}, dial);
+    el("circle", { cx: PX, cy: PY, r: RB, style: "fill:url(#knobBase)", filter: "url(#sombraKnob)" }, k);
+    el("circle", { cx: PX, cy: PY, r: RB - .8, fill: "none", style: "stroke:var(--knob-brilho)", "stroke-width": 1.2 }, k);
+    const RT = RB - 9;
+    el("circle", { cx: PX, cy: PY, r: RT, style: "fill:url(#knobGrad)", filter: "url(#sombraTopo)" }, k);
+    el("circle", { cx: PX, cy: PY, r: RT - .7, fill: "none", style: "stroke:var(--knob-brilho)", "stroke-width": 1 }, k);
+    notaSvg = el("text", { x: PX, y: PY + 12, "text-anchor": "middle", style: "fill:var(--knob-tinta);font:800 34px var(--f-display);letter-spacing:-.03em" }, dial);
+  }
+
+  // ================= motor de afinação =================
+  // Detecção de altura pelo método de McLeod (NSDF): acha o período da onda comparando
+  // o sinal com ele mesmo deslocado; interpolação parabólica dá a fração do período.
+  const NOMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  let ref = 440;
+  const elHz = document.getElementById("hz"), elCents = document.getElementById("cents");
+  const elLinha = document.getElementById("linha"), elAviso = document.getElementById("aviso");
+  const fmt = n => n.toFixed(2).replace(".", ",");
+
+  const F_MIN = 38, F_MAX = 1400;       // do Mi grave do baixo até as agudas da guitarra
+  const LIMIAR_RMS = 0.006;             // abaixo disso é silêncio
+  const CLAREZA_MIN = 0.72;             // quão "periódico" o som precisa ser
+  const SILENCIO_MS = 420;              // depois disso a agulha volta ao repouso
+
+  let modo = "iniciando";               // iniciando | toque | ouvindo | bloqueado | demo
+  let actx = null, analyser = null, buf = null, sq = null;
+  let notaMidi = null, mSuave = null, ultimoSom = 0, quadro = 0;
+  const janela = [];                    // últimas leituras, para a mediana
+
+  function detectar(x, sr) {
+    const N = x.length;
+    let soma = 0; for (let i = 0; i < N; i++) soma += x[i] * x[i];
+    if (Math.sqrt(soma / N) < LIMIAR_RMS) return null;
+    const W = N >> 1;
+    const tMin = Math.max(2, Math.floor(sr / F_MAX)), tMax = Math.min(N - W - 1, Math.ceil(sr / F_MIN));
+    // somas acumuladas dos quadrados, para o denominador sair em O(1) por deslocamento
+    sq[0] = 0; for (let i = 0; i < N; i++) sq[i + 1] = sq[i] + x[i] * x[i];
+    const e0 = sq[W];
+    const nsdf = new Float32Array(tMax + 2);
+    for (let t = tMin; t <= tMax + 1; t++) {
+      let r = 0;
+      for (let j = 0; j < W; j++) r += x[j] * x[j + t];
+      const m = e0 + (sq[W + t] - sq[t]);
+      nsdf[t] = m > 0 ? 2 * r / m : 0;
+    }
+    // máximos de cada trecho positivo
+    const picos = []; let dentro = false, melhorT = 0, melhorV = -1;
+    for (let t = tMin + 1; t <= tMax; t++) {
+      if (nsdf[t - 1] <= 0 && nsdf[t] > 0) { dentro = true; melhorV = -1; }
+      if (dentro && nsdf[t] > melhorV && nsdf[t] >= nsdf[t - 1] && nsdf[t] >= nsdf[t + 1]) { melhorV = nsdf[t]; melhorT = t; }
+      if (dentro && nsdf[t - 1] > 0 && nsdf[t] <= 0) { dentro = false; if (melhorV > 0) picos.push([melhorT, melhorV]); }
+    }
+    if (dentro && melhorV > 0) picos.push([melhorT, melhorV]);
+    if (!picos.length) return null;
+    const maior = Math.max(...picos.map(p => p[1]));
+    const escolhido = picos.find(p => p[1] >= maior * 0.9);
+    if (!escolhido || escolhido[1] < CLAREZA_MIN) return null;
+    const t = escolhido[0], a = nsdf[t - 1], b = nsdf[t], c = nsdf[t + 1];
+    const den = a - 2 * b + c;
+    const tFino = den !== 0 ? t + 0.5 * (a - c) / den : t;
+    return sr / tFino;
+  }
+
+  function mediana(arr) { const s = [...arr].sort((p, q) => p - q); return s[s.length >> 1]; }
+
+  function analisar(agora) {
+    if (!analyser) return;
+    analyser.getFloatTimeDomainData(buf);
+    const f = detectar(buf, actx.sampleRate);
+    if (f) {
+      const m = 69 + 12 * Math.log2(f / ref);
+      // um salto grande (outra corda) recomeça a janela, para responder na hora
+      if (janela.length && Math.abs(m - janela[janela.length - 1]) > 0.8) janela.length = 0;
+      janela.push(m); if (janela.length > 5) janela.shift();
+      const med = mediana(janela);
+      // a nota só troca se a leitura passar bem da fronteira (evita piscar entre duas notas)
+      if (notaMidi === null || Math.abs(med - notaMidi) > 0.62) notaMidi = Math.round(med);
+      mSuave = med;
+      ultimoSom = agora;
+    } else if (agora - ultimoSom > SILENCIO_MS) {
+      janela.length = 0; notaMidi = null; mSuave = null;
+    }
+  }
+
+  function mostrarAviso(txt) {
+    elLinha.hidden = !!txt; elAviso.hidden = !txt; elAviso.textContent = txt || "";
+  }
+
+  async function ligarMicrofone() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw { name: "SemMicrofone" };
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    const AC = window.AudioContext || window.webkitAudioContext;
+    actx = new AC();
+    const fonte = actx.createMediaStreamSource(stream);
+    analyser = actx.createAnalyser();
+    analyser.fftSize = 4096;
+    fonte.connect(analyser);
+    buf = new Float32Array(analyser.fftSize); sq = new Float64Array(analyser.fftSize + 1);
+    if (actx.state !== "running") { try { await actx.resume(); } catch (e) {} }
+    modo = actx.state === "running" ? "ouvindo" : "toque";
+    mostrarAviso(modo === "toque" ? "Toque na tela para ligar o microfone" : "");
+    manterTelaAcesa();
+  }
+
+  let trava = null;
+  async function manterTelaAcesa() {
+    try { if (navigator.wakeLock && !trava) { trava = await navigator.wakeLock.request("screen"); trava.addEventListener("release", () => { trava = null; }); } } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && modo === "ouvindo") { manterTelaAcesa(); if (actx && actx.state !== "running") actx.resume().catch(() => {}); }
+  });
+
+  async function iniciar() {
+    const dentroDoClaude = window.self !== window.top; // no artefato o microfone é bloqueado
+    try {
+      await ligarMicrofone();
+    } catch (e) {
+      if (dentroDoClaude || e.name === "SemMicrofone") { modo = "demo"; mostrarAviso("Demonstração · o microfone funciona no app instalado"); }
+      else if (e.name === "NotAllowedError") { modo = "bloqueado"; mostrarAviso("Microfone bloqueado. Libere em Ajustes › Safari › Microfone"); }
+      else { modo = "toque"; mostrarAviso("Toque na tela para ligar o microfone"); }
+    }
+  }
+  // o iPhone só libera o áudio depois de um toque: o primeiro toque em qualquer lugar liga
+  document.addEventListener("pointerdown", async () => {
+    if (modo !== "toque") return;
+    if (actx) { try { await actx.resume(); } catch (e) {} if (actx.state === "running") { modo = "ouvindo"; mostrarAviso(""); manterTelaAcesa(); } }
+    else iniciar();
+  });
+
+  // ---- demonstração (quando não há microfone, como dentro do Claude) ----
+  const CORDAS = [40, 45, 50, 55, 59, 64];
+  let dCorda = 0, dFase = "afinando", dT0 = performance.now(), dDesvio = -30;
+  function demo(agora) {
+    const t = (agora - dT0) / 1000;
+    let c;
+    if (dFase === "afinando") { c = dDesvio * Math.max(0, 1 - t / 3.2) + (Math.random() - .5) * 1.2; if (t > 3.4) { dFase = "afinado"; dT0 = agora; } }
+    else { c = (Math.random() - .5) * .8; if (t > 1.8) { dCorda = (dCorda + 1) % CORDAS.length; dDesvio = (Math.random() < .5 ? -1 : 1) * (18 + Math.random() * 30); dT0 = agora; dFase = "afinando"; } }
+    notaMidi = CORDAS[dCorda]; mSuave = notaMidi + c / 100;
+  }
+
+  // ---- agulha: mola com amortecimento, para ter peso e não tremer ----
+  let pos = -50, vel = 0, ultimo = performance.now();
+  function passo(agora) {
+    const dt = Math.min(.05, (agora - ultimo) / 1000); ultimo = agora;
+    const desdeLigar = ligadoEm === null ? -1 : agora - ligadoEm;
+    const ligando = desdeLigar < 1300; // durante a abertura e o pico de ligar, nada de leitura
+    if (!ligando) {
+      if (modo === "demo") demo(agora);
+      else if (modo === "ouvindo" && (quadro++ & 1) === 0) analisar(agora);
+    }
+    let alvo = -50, temNota = !ligando && notaMidi !== null && mSuave !== null;
+    let cents = 0;
+    if (temNota) { cents = (mSuave - notaMidi) * 100; alvo = Math.max(-50, Math.min(50, cents)); }
+    else if (desdeLigar >= 0 && desdeLigar < 420) alvo = 58; // o pico de quando o aparelho liga
+    vel += ((alvo - pos) * 38 - vel * 9.5) * dt;
+    pos += vel * dt;
+    agulha.setAttribute("transform", `rotate(${angDeCents(pos)} ${PX} ${PY})`);
+    if (temNota) {
+      const nome = NOMES[((notaMidi % 12) + 12) % 12], oit = Math.floor(notaMidi / 12) - 1;
+      const afinado = Math.abs(cents) < 2;
+      notaSvg.innerHTML = `${nome}<tspan dx="2" style="font-size:15px;font-weight:500">${oit}</tspan>`;
+      notaSvg.style.fill = afinado ? "var(--accent)" : "var(--knob-tinta)";
+      elHz.textContent = fmt(ref * Math.pow(2, (mSuave - 69) / 12));
+      const c = Math.round(cents);
+      elCents.textContent = (c > 0 ? "+" : c < 0 ? "−" : "") + Math.abs(c);
+    } else {
+      notaSvg.textContent = "–"; notaSvg.style.fill = "var(--knob-tinta)";
+      elHz.textContent = "—"; elCents.textContent = "0";
+    }
+    requestAnimationFrame(passo);
+  }
+  // ---- abertura e o "ligar" do aparelho ----
+  let ligadoEm = null;
+  function ligar() {
+    ligadoEm = performance.now();
+    const luz = document.getElementById("lampada-luz");
+    if (luz) { luz.classList.remove("acesa"); void luz.getBoundingClientRect(); luz.classList.add("acesa"); }
+  }
+  const abertura = document.getElementById("abertura");
+  const semMovimento = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!abertura || semMovimento) { if (abertura) abertura.remove(); ligar(); }
+  else {
+    setTimeout(() => { abertura.classList.add("saindo"); ligar(); }, 1150);
+    setTimeout(() => abertura.remove(), 1600);
+  }
+  iniciar();
+
+  // ---- tecla basculante da referência ----
+  const roda = document.getElementById("roda"), refNum = document.getElementById("ref-num");
+  function definirRef(v) {
+    ref = Math.max(435, Math.min(445, v));
+    refNum.textContent = ref;
+    try { localStorage.setItem("needle-ref", ref); } catch (e) {}
+  }
+  // o app às vezes entrega o mesmo toque duas vezes: o valor novo sai do que estava na tela, então o repetido não soma de novo
+  let ultimoToque = { lado: 0, t: 0 };
+  function apertar(d) {
+    const agora = performance.now();
+    if (ultimoToque.lado === d && agora - ultimoToque.t < 250) return;
+    ultimoToque = { lado: d, t: agora };
+    definirRef(+refNum.textContent + d);
+    roda.classList.remove("menos", "mais"); roda.classList.add(d < 0 ? "menos" : "mais");
+    setTimeout(() => roda.classList.remove("menos", "mais"), 180);
+  }
+  document.getElementById("ref-menos").addEventListener("click", () => apertar(-1));
+  document.getElementById("ref-mais").addEventListener("click", () => apertar(1));
+  let inicial = 440;
+  try { const s = parseInt(localStorage.getItem("needle-ref"), 10); if (s >= 435 && s <= 445) inicial = s; } catch (e) {}
+  definirRef(inicial);
+
+  // ---- temas ----
+  const root = document.documentElement;
+  function aplicarTema(tema) {
+    if (tema === "claro") root.removeAttribute("data-tema"); else root.setAttribute("data-tema", tema);
+    document.querySelectorAll("button[data-tema]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.tema === tema)));
+    try { localStorage.setItem("needle-tema", tema); } catch (e) {}
+    const mt = document.querySelector('meta[name="theme-color"]'); // barra do iPhone na cor do aparelho, no app instalado
+    if (mt) mt.setAttribute("content", getComputedStyle(root).getPropertyValue("--panel").trim());
+  }
+  document.querySelectorAll("button[data-tema]").forEach(b => b.onclick = () => {
+    // o toque define a cor (não alterna): repetir o mesmo tema não refaz a animação
+    if ((root.getAttribute("data-tema") || "claro") === b.dataset.tema) return;
+    aplicarTema(b.dataset.tema); ligar();
+  });
+  try { const s = localStorage.getItem("needle-tema"); if (s) aplicarTema(s); } catch (e) {}
+
+
+  document.addEventListener("gesturestart", e => e.preventDefault());
+  // desce o conjunto do mostrador 15% da altura dele, sem invadir a linha de baixo
+  const caixa = dial.parentElement;
+  function descer() {
+    dial.style.transform = "";
+    const livre = (caixa.clientHeight - dial.getBoundingClientRect().height) / 2;
+    const passo = Math.max(0, Math.min(dial.getBoundingClientRect().height * .15, livre * .6));
+    dial.style.transform = `translateY(${passo}px)`;
+  }
+  addEventListener("resize", descer);
+  // a mesma espessura do "l" do nome na agulha e na marcação de afinado
+  function espessura() {
+    const px = document.getElementById("traco").getBoundingClientRect().width;
+    const larg = dial.getBoundingClientRect().width;
+    if (!px || !larg) return;
+    const u = px * 400 / larg;
+    dial.querySelectorAll(".traco-svg").forEach(n => n.setAttribute("stroke-width", u.toFixed(2)));
+  }
+  addEventListener("resize", espessura);
+  // logo: o "l" com a altura exata do "d", e o TUNER alinhado no topo dos dois
+  function alinharLogo() {
+    const b = document.querySelector(".logo b"), traco = document.getElementById("traco"), sub = document.querySelector(".sub");
+    const cs = getComputedStyle(b);
+    const ctx = document.createElement("canvas").getContext("2d");
+    ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const alt = ctx.measureText("d").actualBoundingBoxAscent;
+    if (!alt) return;
+    traco.style.height = alt + "px";
+    sub.style.transform = "translateX(-50%)";
+    const topo = traco.getBoundingClientRect().bottom - alt; // linha de cima do "d" e do "l"
+    const capa = parseFloat(getComputedStyle(sub).fontSize) * .15; // folga do texto acima das maiúsculas
+    const dy = topo - capa - sub.getBoundingClientRect().top;
+    sub.style.transform = `translate(-50%, ${dy.toFixed(1)}px)`;
+    // botões de cor: começam na tinta do primeiro "e" e terminam na do último
+    // mede a tinta real do "e" desenhando a letra e procurando os pixels pintados
+    const tam = parseFloat(cs.fontSize), cv = document.createElement("canvas");
+    cv.width = Math.ceil(tam * 2); cv.height = Math.ceil(tam * 1.5);
+    const c2 = cv.getContext("2d"); c2.font = ctx.font; c2.fillStyle = "#000"; c2.textBaseline = "alphabetic";
+    const ox = Math.round(tam * .5); c2.fillText("e", ox, Math.round(tam * 1.1));
+    const px = c2.getImageData(0, 0, cv.width, cv.height).data;
+    let esq = cv.width, dir = -1;
+    for (let x = 0; x < cv.width; x++) for (let y = 0; y < cv.height; y++) if (px[(y * cv.width + x) * 4 + 3] > 60) { if (x < esq) esq = x; if (x > dir) dir = x; break; }
+    const lsb = esq - ox, rsbInk = dir + 1 - ox; // início e fim da tinta medidos a partir do ponto onde a letra começa
+    const e1 = document.getElementById("e1").getBoundingClientRect(), e2 = document.querySelector(".ultimo").getBoundingClientRect();
+    const aro = 1.5; // o aro do botão fica por fora do círculo
+    const ini = e1.left + lsb + aro, fim = e2.left + rsbInk - aro;
+    const cores = document.querySelector(".cores"), pe = document.querySelector(".logo-pe").getBoundingClientRect();
+    const folga = 5; // o botão visível fica 5 px para dentro da área de toque
+    cores.style.width = (fim - ini + 2 * folga).toFixed(1) + "px";
+    cores.style.marginRight = (pe.right - (fim + folga)).toFixed(1) + "px";
+  }
+  addEventListener("resize", alinharLogo);
+  requestAnimationFrame(alinharLogo);
+  // a abertura usa uma cópia da logo do topo, já alinhada e na cor do tema
+  function preencherAbertura() {
+    const caixa = document.querySelector(".abertura-logo"); if (!caixa) return;
+    const copia = document.querySelector(".logo").cloneNode(true);
+    copia.querySelectorAll("[id]").forEach(n => n.removeAttribute("id"));
+    copia.querySelectorAll("button").forEach(b => { b.removeAttribute("data-tema"); b.tabIndex = -1; });
+    caixa.replaceChildren(copia);
+  }
+  requestAnimationFrame(() => { alinharLogo(); preencherAbertura(); });
+  if (document.fonts) document.fonts.ready.then(() => { alinharLogo(); espessura(); preencherAbertura(); });
+  requestAnimationFrame(espessura);
+  requestAnimationFrame(descer);
+  desenhar();
+  requestAnimationFrame(passo);
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>
