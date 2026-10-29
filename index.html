@@ -70,7 +70,7 @@ img{max-width:100%}
 /* tela travada: nada rola, nada dá zoom, segurar o dedo não seleciona nem abre lupa */
 * { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 html, body { overflow: hidden; overscroll-behavior: none; }
-html, body { height: 100%; }
+html, body { height: 100%; margin: 0; }
 body { background: var(--panel); color: var(--ink); font-family: var(--f-body); -webkit-tap-highlight-color: transparent; transition: background .35s ease, color .35s ease; }
 .moldura { height: 100%; box-sizing: border-box; position: relative; overflow: hidden; }
 /* teste: o afinador ocupa a tela inteira, sem moldura, sem grade e sem borda */
@@ -79,8 +79,8 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   width: calc(100% / var(--e, 1)); height: calc(100% / var(--e, 1)); transform: scale(var(--e, 1)); transform-origin: 0 0;
   box-sizing: border-box; background: var(--panel);
   display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 16px; position: relative;
-  padding-left: max(20px, env(safe-area-inset-left, 0px));
-  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
   padding-block: 14px 20px;
   transition: background .35s ease;
 }
@@ -750,18 +750,23 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   const caixa = dial.parentElement;
   // logo, display e botão da agulha com o mesmo espaço entre eles e até a borda de baixo
   function descer() {
-    const vb = dial.viewBox.baseVal;
-    const topoDisp = -33, baseDisp = -33 + 243, topoPoco = PY - 81, basePoco = PY + 81 + 3; // display e poço, em unidades do desenho
-    const g = topoPoco - baseDisp;                    // espaço entre display e poço (fixo, é o comprimento da agulha)
-    const conteudo = basePoco - topoDisp;              // do topo do display ao fim do poço
-    dial.style.transform = "";
-    const cw = caixa.clientWidth, ch = caixa.clientHeight;
-    if (!cw || ch < 200) return; // ainda sem medida; tenta de novo no próximo organizar
-    const k = Math.min(cw / vb.width, 420 / vb.width, ch / (conteudo + 2 * g)); // cabe na largura e deixa os três espaços iguais
+    // quatro espaços iguais: topo da tela → logo, botões de cor → display, display → poço, poço → fim da tela
+    const vb = dial.viewBox.baseVal, topo = document.querySelector(".topo"), ap = document.querySelector(".aparelho");
+    const topoDisp = -33, D = 243, W = 81 * 2 + 3, g = (PY - 81) - (topoDisp + D); // g: display → poço, fixo pelo comprimento da agulha
+    topo.style.transform = ""; dial.style.transform = "";
+    const H = ap.clientHeight, cw = Math.max(caixa.clientWidth, ap.clientWidth - 16); // o display pode chegar a 8 px da borda
+    const traco = document.getElementById("traco"), cor = document.querySelector(".cor");
+    if (!H || !cw || !traco || !cor) return;
+    const logoTopo = rr(traco).top, logoBase = rr(cor).bottom - 5; // tinta do "l" e borda visível do botão
+    const logoH = logoBase - logoTopo;
+    const kAltura = (H - logoH) / (4 * g + D + W);         // tamanho em que os quatro espaços saem iguais
+    const k = Math.max(.3, Math.min(cw / vb.width, 440 / vb.width, kAltura));
+    const G = (H - logoH - (D + W + g) * k) / 3;            // se a largura limitar, os três de fora continuam iguais
     dial.style.width = (vb.width * k).toFixed(1) + "px";
     dial.style.height = (vb.height * k).toFixed(1) + "px";
-    const sobra = (ch - conteudo * k) / 2;             // espaço igual em cima (até a logo) e embaixo
-    dial.style.transform = `translateY(${(sobra - (topoDisp - vb.y) * k).toFixed(1)}px)`;
+    topo.style.transform = `translateY(${(G - logoTopo).toFixed(1)}px)`;
+    const dispAgora = rr(dial).top + (topoDisp - vb.y) * k;
+    dial.style.transform = `translateY(${(G + logoH + G - dispAgora).toFixed(1)}px)`;
   }
   addEventListener("resize", descer);
   // rodapé alinhado às laterais do display: a leitura de Hz começa na borda esquerda dele e o "+" termina na direita
@@ -857,7 +862,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     centsCanto.setAttribute("y", yAlvo);
     if (rotuloMais) { const bb = rotuloMais.getBBox(); if (bb.width) centsCanto.setAttribute("x", (bb.x + bb.width).toFixed(1)); }
   }
-  function organizar() { descer(); alinharColuna(); alinharRodape(); alinharLogo(); espessura(); ajustarAlvo(); preencherAbertura(); }
+  function organizar() { descer(); alinharColuna(); alinharRodape(); alinharLogo(); descer(); alinharColuna(); espessura(); ajustarAlvo(); preencherAbertura(); }
   addEventListener("resize", () => requestAnimationFrame(organizar));
   requestAnimationFrame(organizar);
   if (document.fonts) document.fonts.ready.then(organizar);
