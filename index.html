@@ -271,7 +271,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   };
   const angDeCents = c => Math.max(-1, Math.min(1, c / 50)) * ABERTURA;
 
-  let agulha, notaSvg, anel, alvoSvg, alvoTopo, hzMeio, centsCanto; const medidores = {};
+  let rotuloMais, agulha, notaSvg, anel, alvoSvg, alvoTopo, hzMeio, centsCanto; const medidores = {};
   function desenhar() {
     const defs = el("defs", {}, dial);
     const g1 = el("radialGradient", { id: "pivoGrad", cx: "38%", cy: "32%", r: "75%" }, defs);
@@ -331,7 +331,8 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     el("path", { d: `M${ax} ${ay} A${rEsc + 8} ${rEsc + 8} 0 0 1 ${bx} ${by}`, fill: "none", style: "stroke:var(--ink)", "stroke-width": 1, opacity: .35 }, dial);
     [[-50, "−50"], [0, "0"], [50, "+50"]].forEach(([c, t]) => {
       const [x, y] = ponto(angDeCents(c), rEsc + 16); // o 0 fica tão perto da linha quanto o −50 e o +50
-      el("text", { x, y, "text-anchor": "middle", style: "fill:var(--ink-2);font:500 13px var(--f-mono)" }, dial).textContent = t;
+      const r = el("text", { x, y, "text-anchor": "middle", style: "fill:var(--ink-2);font:500 13px var(--f-mono)" }, dial); r.textContent = t;
+      if (c === 50) rotuloMais = r;
     });
     [["♭", -ABERTURA + 4], ["♯", ABERTURA - 4]].forEach(([t, ang]) => {
       const [x, y] = ponto(ang, rEsc - 62);
@@ -849,9 +850,12 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     const pxRodape = 14;
     const f = pxRodape / k; // tamanho em unidades do desenho
     alvoTopo.style.font = `500 ${f.toFixed(2)}px var(--f-mono)`;
-    centsCanto.style.font = `500 ${f.toFixed(2)}px var(--f-mono)`;
-    centsCanto.setAttribute("y", (-33 + 14 + f * .7).toFixed(1));
-    alvoTopo.setAttribute("y", (((PY - (RE + 16) - 13 * .7) + (-33 + 7)) / 2 + f * .7 / 2).toFixed(1)); // −33 é o topo do display (DY)
+    const yAlvo = (((PY - (RE + 16) - 13 * .7) + (-33 + 7)) / 2 + f * .7 / 2).toFixed(1); // −33 é o topo do display (DY)
+    alvoTopo.setAttribute("y", yAlvo);
+    // cents no canto direito: mesma linha do alvo, mesma letra do −50/+50 e terminando onde o +50 termina
+    centsCanto.style.font = "500 13px var(--f-mono)"; centsCanto.style.letterSpacing = "0";
+    centsCanto.setAttribute("y", yAlvo);
+    if (rotuloMais) { const bb = rotuloMais.getBBox(); if (bb.width) centsCanto.setAttribute("x", (bb.x + bb.width).toFixed(1)); }
   }
   function organizar() { descer(); alinharColuna(); alinharRodape(); alinharLogo(); espessura(); ajustarAlvo(); preencherAbertura(); }
   addEventListener("resize", () => requestAnimationFrame(organizar));
