@@ -324,7 +324,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     const [ax, ay] = ponto(-ABERTURA - 1, rEsc + 8), [bx, by] = ponto(ABERTURA + 1, rEsc + 8);
     el("path", { d: `M${ax} ${ay} A${rEsc + 8} ${rEsc + 8} 0 0 1 ${bx} ${by}`, fill: "none", style: "stroke:var(--ink)", "stroke-width": 1, opacity: .35 }, dial);
     [[-50, "−50"], [0, "0"], [50, "+50"]].forEach(([c, t]) => {
-      const [x, y] = ponto(angDeCents(c), rEsc + (c === 0 ? 24 : 16));
+      const [x, y] = ponto(angDeCents(c), rEsc + 16); // o 0 fica tão perto da linha quanto o −50 e o +50
       el("text", { x, y, "text-anchor": "middle", style: "fill:var(--ink-2);font:500 13px var(--f-mono)" }, dial).textContent = t;
     });
     [["♭", -ABERTURA + 4], ["♯", ABERTURA - 4]].forEach(([t, ang]) => {
@@ -333,7 +333,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     });
 
     // no display: o alvo em Hz em cima do zero e a frequência tocada no meio, entre a marcação de afinado e o volume
-    alvoTopo = el("text", { x: PX, y: PY - (RE + 24) - 16, "text-anchor": "middle", style: "fill:var(--ink-2);font:500 11px var(--f-mono);letter-spacing:.04em" }, dial);
+    alvoTopo = el("text", { x: PX, y: ((PY - (RE + 16) - 10) + DY) / 2 + 4, /* no meio entre o topo do "0" e a borda do display */ "text-anchor": "middle", style: "fill:var(--ink-2);font:500 11px var(--f-mono);letter-spacing:.04em" }, dial);
     hzMeio = el("text", { x: PX, y: (PY - (RE - 30) + DY + DH - 42) / 2 + 11, "text-anchor": "middle", style: "fill:var(--ink);font:600 30px var(--f-display);letter-spacing:-.02em" }, dial);
 
     // campo cavado ao redor do botão (luz e sombra, sem borda)
