@@ -137,7 +137,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 .mostrador { display: grid; place-items: center; min-height: 0; }
 .mostrador svg { width: 100%; max-width: 420px; max-height: 100%; overflow: visible; }
 
-.leitura { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding-left: 4px; }
+.leitura { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
 .nota-bloco { grid-column: 1; display: grid; justify-items: start; gap: 6px; min-width: 0; }
 .hz { font-family: var(--f-mono); font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hz b { color: var(--ink); font-weight: 600; }
@@ -145,7 +145,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 
 .ref { grid-column: 2; justify-self: end; display: grid; justify-items: center; gap: 8px; }
 /* referência no canto inferior direito, no mesmo tipo da leitura de Hz do canto esquerdo */
-.ref-ctl { position: relative; display: flex; align-items: center; margin-right: -14px; font-family: var(--f-mono); font-size: 14px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.ref-ctl { position: relative; display: flex; align-items: center; margin-right: -16px; font-family: var(--f-mono); font-size: 14px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 .ref-txt { white-space: nowrap; }
 .ref-txt b { color: var(--ink); font-weight: 600; }
 .ref-sinal { width: 44px; text-align: center; font-size: 18px; color: var(--ink-2); transition: color .1s; }
@@ -728,6 +728,18 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     dial.style.transform = `translateY(${passo}px)`;
   }
   addEventListener("resize", descer);
+  // rodapé alinhado às laterais do display: a leitura de Hz começa na borda esquerda dele e o "+" termina na direita
+  function alinharRodape() {
+    const lt = document.querySelector(".leitura"); if (!lt) return;
+    lt.style.paddingLeft = lt.style.paddingRight = "0px";
+    const d = rr(dial), l = rr(lt), vb = dial.viewBox.baseVal;
+    const k = d.width / vb.width;
+    const esq = d.left + (4 - vb.x) * k, dir = d.left + (4 + 392 - vb.x) * k; // mesmas medidas do display (DX e DW)
+    lt.style.paddingLeft = Math.max(0, esq - l.left).toFixed(1) + "px";
+    lt.style.paddingRight = Math.max(0, l.right - dir).toFixed(1) + "px";
+  }
+  addEventListener("resize", alinharRodape);
+  requestAnimationFrame(alinharRodape);
   // a mesma espessura do "l" do nome na agulha e na marcação de afinado
   function espessura() {
     const px = document.getElementById("traco").getBoundingClientRect().width;
