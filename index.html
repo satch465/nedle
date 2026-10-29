@@ -85,6 +85,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   transition: background .35s ease;
 }
 .aparelho > * { width: 100%; max-width: 480px; margin-inline: auto; }
+.aparelho > .topo, .aparelho > .leitura { margin-inline: 0; }
 
 .topo { display: flex; justify-content: flex-end; padding: 4px 0 0 2px; }
 /* nome, subnome e botões formam um bloco com as mesmas bordas */
@@ -333,7 +334,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     });
 
     // no display: o alvo em Hz em cima do zero e a frequência tocada no meio, entre a marcação de afinado e o volume
-    alvoTopo = el("text", { x: PX, y: ((PY - (RE + 16) - 10) + DY) / 2 + 4, /* no meio entre o topo do "0" e a borda do display */ "text-anchor": "middle", style: "fill:var(--ink-2);font:500 11px var(--f-mono);letter-spacing:.04em" }, dial);
+    alvoTopo = el("text", { x: PX, y: ((PY - (RE + 16) - 13 * .7) + (DY + 7)) / 2 + 11 * .7 / 2, /* no meio entre a borda do display e o topo do "0" */ "text-anchor": "middle", style: "fill:var(--ink-2);font:500 11px var(--f-mono);letter-spacing:.04em" }, dial);
     hzMeio = el("text", { x: PX, y: (PY - (RE - 30) + DY + DH - 42) / 2 + 11, "text-anchor": "middle", style: "fill:var(--ink);font:600 30px var(--f-display);letter-spacing:-.02em" }, dial);
 
     // campo cavado ao redor do botão (luz e sombra, sem borda)
@@ -741,23 +742,35 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   }
   addEventListener("resize", descer);
   // rodapé alinhado às laterais do display: a leitura de Hz começa na borda esquerda dele e o "+" termina na direita
+  function desenhoNaTela() {
+    const d = rr(dial), vb = dial.viewBox.baseVal;
+    const k = Math.min(d.width / vb.width, d.height / vb.height);
+    const x0 = d.left + (d.width - vb.width * k) / 2;
+    return { k, esq: x0 + (4 - vb.x) * k, dir: x0 + (4 + 392 - vb.x) * k }; // bordas do display (DX e DW)
+  }
+  // topo e rodapé com as mesmas bordas do display
+  function alinharColuna() {
+    const { esq, dir } = desenhoNaTela();
+    [".topo", ".leitura"].forEach(sel => {
+      const n = document.querySelector(sel); if (!n) return;
+      n.style.marginLeft = "0px"; n.style.width = ""; n.style.maxWidth = "none";
+      const r = rr(n);
+      n.style.marginLeft = (esq - r.left).toFixed(1) + "px";
+      n.style.width = (dir - esq).toFixed(1) + "px";
+    });
+  }
   function alinharRodape() {
     const lt = document.querySelector(".leitura"); if (!lt) return;
     lt.style.paddingLeft = lt.style.paddingRight = "0px";
-    const d = rr(dial), l = rr(lt), vb = dial.viewBox.baseVal;
-    const k = d.width / vb.width;
-    const esq = d.left + (4 - vb.x) * k, dir = d.left + (4 + 392 - vb.x) * k; // mesmas medidas do display (DX e DW)
-    lt.style.paddingLeft = Math.max(0, esq - l.left).toFixed(1) + "px";
-    lt.style.paddingRight = Math.max(0, l.right - dir).toFixed(1) + "px";
   }
   addEventListener("resize", alinharRodape);
   requestAnimationFrame(alinharRodape);
   // a mesma espessura do "l" do nome na agulha e na marcação de afinado
   function espessura() {
     const px = document.getElementById("traco").getBoundingClientRect().width;
-    const larg = dial.getBoundingClientRect().width;
-    if (!px || !larg) return;
-    const u = px * 400 / larg;
+    const { k } = desenhoNaTela(); // px já vem da tela; k está na medida do aparelho
+    if (!px || !k) return;
+    const u = px / E / k;
     dial.querySelectorAll(".traco-svg").forEach(n => n.setAttribute("stroke-width", u.toFixed(2)));
   }
   addEventListener("resize", espessura);
@@ -808,6 +821,10 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   requestAnimationFrame(espessura);
   requestAnimationFrame(descer);
   desenhar();
+  function organizar() { descer(); alinharColuna(); alinharRodape(); alinharLogo(); espessura(); preencherAbertura(); }
+  addEventListener("resize", () => requestAnimationFrame(organizar));
+  requestAnimationFrame(organizar);
+  if (document.fonts) document.fonts.ready.then(organizar);
   requestAnimationFrame(passo);
 })();
 </script>
