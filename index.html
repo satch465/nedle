@@ -824,7 +824,15 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   requestAnimationFrame(espessura);
   requestAnimationFrame(descer);
   desenhar();
-  function organizar() { descer(); alinharColuna(); alinharRodape(); alinharLogo(); espessura(); preencherAbertura(); }
+  // alvo acima do zero com o mesmo tamanho de letra do rodapé, medido na tela
+  function ajustarAlvo() {
+    const { k } = desenhoNaTela(); if (!k || !alvoTopo) return;
+    const pxRodape = parseFloat(getComputedStyle(document.querySelector(".hz")).fontSize) || 14;
+    const f = pxRodape / k; // tamanho em unidades do desenho
+    alvoTopo.style.font = `500 ${f.toFixed(2)}px var(--f-mono)`;
+    alvoTopo.setAttribute("y", (((PY - (RE + 16) - 13 * .7) + (-33 + 7)) / 2 + f * .7 / 2).toFixed(1)); // −33 é o topo do display (DY)
+  }
+  function organizar() { descer(); alinharColuna(); alinharRodape(); alinharLogo(); espessura(); ajustarAlvo(); preencherAbertura(); }
   addEventListener("resize", () => requestAnimationFrame(organizar));
   requestAnimationFrame(organizar);
   if (document.fonts) document.fonts.ready.then(organizar);
