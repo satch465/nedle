@@ -91,7 +91,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 .aparelho > .leitura { position: absolute; left: 0; right: 0; bottom: max(18px, env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; display: flex; justify-content: center; padding-inline: 24px; pointer-events: none; }
 .leitura .aviso { max-width: 34ch; text-align: center; }
 
-.topo { display: flex; justify-content: flex-end; padding: 4px 0 0 2px; }
+.topo { display: flex; justify-content: flex-start; padding: 4px 0 0 2px; }
 /* nome, subnome e botões formam um bloco com as mesmas bordas */
 .logo { display: inline-grid; gap: 2px; --traco: .1em; font-size: 76px; }
 .logo b { font-family: var(--f-display); font-weight: 600; font-size: 1em; line-height: .86; letter-spacing: -.035em; display: flex; align-items: baseline; }
@@ -750,7 +750,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   const caixa = dial.parentElement;
   // logo, display e botão da agulha com o mesmo espaço entre eles e até a borda de baixo
   function descer() {
-    // quatro espaços iguais: topo da tela → logo, botões de cor → display, display → poço, poço → fim da tela
+    // logo colada no display (o mesmo vão do nome aos botões) e três espaços iguais no resto
     const vb = dial.viewBox.baseVal, topo = document.querySelector(".topo"), ap = document.querySelector(".aparelho");
     const topoDisp = -33, D = 243, W = 81 * 2 + 3, g = (PY - 81) - (topoDisp + D); // g: display → poço, fixo pelo comprimento da agulha
     topo.style.transform = ""; dial.style.transform = "";
@@ -759,14 +759,16 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     if (!H || !cw || !traco || !cor) return;
     const logoTopo = rr(traco).top, logoBase = rr(cor).bottom - 5; // tinta do "l" e borda visível do botão
     const logoH = logoBase - logoTopo;
-    const kAltura = (H - logoH) / (4 * g + D + W);         // tamanho em que os quatro espaços saem iguais
+    const p = (rr(cor).top + 5) - rr(traco).bottom;          // vão entre o nome e os botões; o mesmo vão vai dos botões ao display
+    // três espaços iguais: topo da tela → logo, display → poço, poço → fim da tela
+    const kAltura = (H - logoH - p) / (3 * g + D + W);
     const k = Math.max(.3, Math.min(cw / vb.width, 440 / vb.width, kAltura));
-    const G = (H - logoH - (D + W + g) * k) / 3;            // se a largura limitar, os três de fora continuam iguais
+    const G = (H - logoH - p - (D + W + g) * k) / 2;        // se a largura limitar, topo e fim continuam iguais
     dial.style.width = (vb.width * k).toFixed(1) + "px";
     dial.style.height = (vb.height * k).toFixed(1) + "px";
     topo.style.transform = `translateY(${(G - logoTopo).toFixed(1)}px)`;
     const dispAgora = rr(dial).top + (topoDisp - vb.y) * k;
-    dial.style.transform = `translateY(${(G + logoH + G - dispAgora).toFixed(1)}px)`;
+    dial.style.transform = `translateY(${(G + logoH + p - dispAgora).toFixed(1)}px)`;
   }
   addEventListener("resize", descer);
   // rodapé alinhado às laterais do display: a leitura de Hz começa na borda esquerda dele e o "+" termina na direita
