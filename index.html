@@ -78,7 +78,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 .aparelho {
   width: calc(100% / var(--e, 1)); height: calc(100% / var(--e, 1)); transform: scale(var(--e, 1)); transform-origin: 0 0;
   box-sizing: border-box; background: var(--panel);
-  display: grid; grid-template-rows: auto 1fr; gap: 16px; position: relative;
+  display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 16px; position: relative;
   padding-left: max(20px, env(safe-area-inset-left, 0px));
   padding-right: max(20px, env(safe-area-inset-right, 0px));
   padding-block: 14px 20px;
@@ -87,8 +87,9 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 .aparelho > * { width: 100%; max-width: 480px; margin-inline: auto; }
 /* app instalado: o iOS desenha um esmaecido no topo da tela, embaixo da barra de status; a logo desce para ficar fora dele */
 @media (display-mode: standalone) { .aparelho { padding-top: 40px; } }
-.aparelho > .topo, .aparelho > .leitura { position: absolute; left: 0; right: 0; bottom: 18px; display: grid; justify-items: center; pointer-events: none; }
-.leitura .aviso { max-width: 30ch; text-align: center; }
+/* só o aviso fica solto, centrado perto da borda de baixo; não ocupa espaço no layout */
+.aparelho > .leitura { position: absolute; left: 0; right: 0; bottom: max(18px, env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; display: flex; justify-content: center; padding-inline: 24px; pointer-events: none; }
+.leitura .aviso { max-width: 34ch; text-align: center; }
 
 .topo { display: flex; justify-content: flex-end; padding: 4px 0 0 2px; }
 /* nome, subnome e botões formam um bloco com as mesmas bordas */
@@ -141,7 +142,6 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 .mostrador { display: grid; place-items: start center; min-height: 0; overflow: visible; }
 .mostrador svg { overflow: visible; display: block; }
 
-.leitura { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
 .nota-bloco { grid-column: 1; display: grid; justify-items: start; gap: 6px; min-width: 0; }
 .hz { font-family: var(--f-mono); font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hz b { color: var(--ink); font-weight: 600; }
@@ -164,6 +164,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 @media (max-height: 640px) { .aparelho { gap: 8px; padding-block: 14px; } }
 /* gaveta de calibragem */
 .veu { position: fixed; inset: 0; z-index: 19; background: rgba(0,0,0,.28); }
+[hidden] { display: none !important; }
 .calib { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--panel); color: var(--ink);
   border-top: 1px solid var(--line); border-radius: 18px 18px 0 0;
   padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
@@ -752,7 +753,9 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     const topoDisp = -33, baseDisp = -33 + 243, topoPoco = PY - 81, basePoco = PY + 81 + 3; // display e poço, em unidades do desenho
     const g = topoPoco - baseDisp;                    // espaço entre display e poço (fixo, é o comprimento da agulha)
     const conteudo = basePoco - topoDisp;              // do topo do display ao fim do poço
+    dial.style.transform = "";
     const cw = caixa.clientWidth, ch = caixa.clientHeight;
+    if (!cw || ch < 200) return; // ainda sem medida; tenta de novo no próximo organizar
     const k = Math.min(cw / vb.width, 420 / vb.width, ch / (conteudo + 2 * g)); // cabe na largura e deixa os três espaços iguais
     dial.style.width = (vb.width * k).toFixed(1) + "px";
     dial.style.height = (vb.height * k).toFixed(1) + "px";
@@ -770,7 +773,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   // topo e rodapé com as mesmas bordas do display
   function alinharColuna() {
     const { esq, dir } = desenhoNaTela();
-    [".topo", ".leitura"].forEach(sel => {
+    [".topo"].forEach(sel => {
       const n = document.querySelector(sel); if (!n) return;
       n.style.marginLeft = "0px"; n.style.width = ""; n.style.maxWidth = "none";
       const r = rr(n);
