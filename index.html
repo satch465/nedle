@@ -165,11 +165,6 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 .calib > * { width: 100%; max-width: 440px; margin-inline: auto; }
 .calib .alca { width: 40px; height: 4px; border-radius: 2px; background: var(--line); }
 .calib h2 { margin: 0 auto 2px; font-family: var(--f-display); font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
-.medidor { display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 10px; font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
-.barra { position: relative; height: 8px; border-radius: 4px; background: var(--poco); box-shadow: inset 1px 1px 2px var(--shade); overflow: hidden; }
-.barra i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--ink-2); border-radius: 4px; }
-.barra i.passa { background: var(--accent); }
-.barra b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); }
 .ajustes-lista { display: grid; gap: 2px; margin-top: 4px; }
 .ajuste { display: grid; grid-template-columns: 1fr 44px 74px 44px; align-items: center; }
 .ajuste > span:first-child { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); line-height: 1.3; }
@@ -229,8 +224,6 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 <section class="calib" id="calib" role="dialog" aria-modal="true" aria-labelledby="calib-titulo" hidden>
   <span class="alca" aria-hidden="true"></span>
   <h2 id="calib-titulo">Calibragem</h2>
-  <div class="medidor"><span>Volume</span><div class="barra"><i id="m-vol"></i><b id="m-vol-lim"></b></div></div>
-  <div class="medidor"><span>Clareza</span><div class="barra"><i id="m-cla"></i><b id="m-cla-lim"></b></div></div>
   <div class="ajustes-lista" id="ajustes-lista"></div>
   <button class="padrao" id="calib-padrao">Voltar ao padrão</button>
 </section>
@@ -258,7 +251,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   };
   const angDeCents = c => Math.max(-1, Math.min(1, c / 50)) * ABERTURA;
 
-  let agulha, notaSvg, anel;
+  let agulha, notaSvg, anel; const medidores = {};
   function desenhar() {
     const defs = el("defs", {}, dial);
     const g1 = el("radialGradient", { id: "pivoGrad", cx: "38%", cy: "32%", r: "75%" }, defs);
@@ -286,6 +279,19 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     el("rect", { x: DX, y: DY, width: DW, height: DH, rx: DR, fill: "url(#lampada)", id: "lampada-luz", class: "lampada" }, tela);
     el("rect", { x: DX + 5, y: DY + 6, width: DW + 4, height: DH + 4, rx: DR, fill: "none", style: "stroke:var(--shade)", "stroke-width": 14, filter: "url(#displayBlur)", opacity: .55 }, tela);
     el("rect", { x: DX - 5, y: DY - 6, width: DW + 4, height: DH + 4, rx: DR, fill: "none", style: "stroke:var(--glow)", "stroke-width": 6, filter: "url(#displayBlur)", opacity: .35 }, tela);
+
+    // medidores no rodapé do display: volume e clareza do que o microfone ouve
+    const MX = DX + 58, MW = DW - 84, MH = 5;
+    [["VOL", DY + DH - 42, "vol"], ["CLAR", DY + DH - 24, "cla"]].forEach(([rot, my, id]) => {
+      el("text", { x: DX + 22, y: my + MH, style: "fill:var(--ink-2);font:500 9px var(--f-mono);letter-spacing:.12em" }, dial).textContent = rot;
+      el("rect", { x: MX, y: my, width: MW, height: MH, rx: MH / 2, style: "fill:var(--poco-borda)" }, dial);
+      el("rect", { x: MX + .5, y: my + .5, width: MW - 1, height: MH - 1, rx: MH / 2, fill: "none", stroke: "#000", "stroke-opacity": ".12", "stroke-width": 1 }, dial);
+      medidores[id] = {
+        barra: el("rect", { x: MX, y: my, width: 0, height: MH, rx: MH / 2, style: "fill:var(--ink-2)" }, dial),
+        limite: el("rect", { x: MX, y: my - 2, width: 1.6, height: MH + 4, style: "fill:var(--ink)" }, dial),
+        x: MX, w: MW
+      };
+    });
 
     const rEsc = RE;
     for (let c = -50; c <= 50; c += 5) {
@@ -596,16 +602,18 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   const abrirCalib = v => { calib.hidden = !v; veuCalib.hidden = !v; calibAbertaEm = v ? performance.now() : 0; };
   document.getElementById("linha").addEventListener("click", () => abrirCalib(true));
   veuCalib.addEventListener("click", () => { if (performance.now() - calibAbertaEm > 400) abrirCalib(false); });
-  // medidores ao vivo: mostram o que o microfone está ouvindo e onde está o limite
-  const mVol = document.getElementById("m-vol"), mVolLim = document.getElementById("m-vol-lim");
-  const mCla = document.getElementById("m-cla"), mClaLim = document.getElementById("m-cla-lim");
+  // medidores ao vivo no display: o que o microfone ouve e onde está cada limite
   const escalaVol = v => Math.max(0, Math.min(1, (Math.log10(Math.max(v, 1e-4)) + 4) / 3)); // de 0,0001 a 0,1
+  function pintar(m, valor, limite) {
+    m.barra.setAttribute("width", (m.w * valor).toFixed(1));
+    m.limite.setAttribute("x", (m.x + m.w * limite - .8).toFixed(1));
+    m.barra.style.fill = valor >= limite && valor > 0 ? "var(--accent)" : "var(--ink-2)";
+  }
   (function medir() {
-    if (!calib.hidden) {
-      mVol.style.width = (escalaVol(ultimoRms) * 100) + "%"; mVolLim.style.left = (escalaVol(SENS[cfg.sens]) * 100) + "%";
-      mVol.classList.toggle("passa", ultimoRms >= SENS[cfg.sens]);
-      mCla.style.width = (Math.max(0, ultimaClareza) * 100) + "%"; mClaLim.style.left = (cfg.clareza * 100) + "%";
-      mCla.classList.toggle("passa", ultimaClareza >= cfg.clareza);
+    if (medidores.vol) {
+      const ouvindo = modo === "ouvindo";
+      pintar(medidores.vol, ouvindo ? escalaVol(ultimoRms) : 0, escalaVol(SENS[cfg.sens]));
+      pintar(medidores.cla, ouvindo ? Math.max(0, ultimaClareza) : 0, cfg.clareza);
     }
     requestAnimationFrame(medir);
   })();
