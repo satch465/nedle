@@ -1,6 +1,6 @@
 // Guarda o app no iPhone para abrir mesmo sem internet.
 // Ao publicar uma versão nova, troque o número abaixo para o iPhone baixar de novo.
-const VERSAO = "nedle-9";
+const VERSAO = "nedle-10";
 const ARQUIVOS = ["./", "index.html", "manifest.webmanifest", "icone-180.png", "icone-192.png", "icone-512.png"];
 
 self.addEventListener("install", e => {
@@ -23,7 +23,9 @@ self.addEventListener("fetch", e => {
     }));
     return;
   }
-  e.respondWith(fetch(e.request).then(r => {
+  // "no-cache" pergunta ao servidor se há versão nova, sem usar a cópia velha guardada pelo navegador
+  const req = url.origin === location.origin ? new Request(e.request, { cache: "no-cache" }) : e.request;
+  e.respondWith(fetch(req).then(r => {
     if (r.ok && url.origin === location.origin) { const copia = r.clone(); caches.open(VERSAO).then(c => c.put(e.request, copia)); }
     return r;
   }).catch(() => caches.match(e.request).then(h => h || caches.match("index.html"))));
