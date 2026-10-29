@@ -334,7 +334,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     });
 
     // no display: o alvo em Hz em cima do zero e a frequência tocada no meio, entre a marcação de afinado e o volume
-    alvoTopo = el("text", { x: PX, y: ((PY - (RE + 16) - 13 * .7) + (DY + 7)) / 2 + 11 * .7 / 2, /* no meio entre a borda do display e o topo do "0" */ "text-anchor": "middle", style: "fill:var(--ink-2);font:500 11px var(--f-mono);letter-spacing:.04em" }, dial);
+    alvoTopo = el("text", { x: PX, y: ((PY - (RE + 16) - 13 * .7) + (DY + 7)) / 2 + 15 * .7 / 2, /* no meio entre a borda do display e o topo do "0" */ "text-anchor": "middle", style: "fill:var(--ink-2);font:500 15px var(--f-mono);letter-spacing:.04em" }, dial); // metade dos 30 px da frequência do meio
     hzMeio = el("text", { x: PX, y: (PY - (RE - 30) + DY + DH - 42) / 2 + 11, "text-anchor": "middle", style: "fill:var(--ink);font:600 30px var(--f-display);letter-spacing:-.02em" }, dial);
 
     // campo cavado ao redor do botão (luz e sombra, sem borda)
