@@ -404,7 +404,12 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   const PESOS = [[90, 15], [55, 11.5], [32, 8.6], [18, 6.4]]; // mola e amortecimento da agulha: leve → pesada
   const PADRAO = { sens: 5, clareza: 0.6, estab: 5, peso: 1, faixa: 3 };
   let cfg = { ...PADRAO };
-  try { Object.assign(cfg, JSON.parse(localStorage.getItem("nedle-ajustes") || "{}")); } catch (e) {}
+  try {
+    const salvo = JSON.parse(localStorage.getItem("nedle-ajustes") || "{}");
+    if (!salvo.v) delete salvo.faixa; // ajustes salvos antes da faixa nova (±3) voltam para o padrão nessa opção
+    Object.assign(cfg, salvo);
+  } catch (e) {}
+  cfg.v = 2;
   let ultimoRms = 0, ultimaClareza = 0;
   const SILENCIO_MS = 420;              // depois disso a agulha volta ao repouso
 
@@ -567,7 +572,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
       // o anel segue a última leitura: se a corda parou afinada, ele fica aceso
       if (notaMidi !== notaDoAnel) { notaDoAnel = notaMidi; afinadoDesde = null; foraDesde = null; }
       if (!parado) {
-        if (Math.abs(cents) < cfg.faixa) { if (afinadoDesde === null) afinadoDesde = agora; foraDesde = null; }
+        if (Math.abs(cents) <= cfg.faixa) { if (afinadoDesde === null) afinadoDesde = agora; foraDesde = null; }
         else if (Math.abs(cents) > cfg.faixa * 2) {
           if (foraDesde === null) foraDesde = agora;
           if (agora - foraDesde > 150) afinadoDesde = null; // só apaga se sair do ponto por um instante
@@ -601,7 +606,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   const lista = document.getElementById("ajustes-lista");
   const saidas = {};
   let ultimoAjuste = { k: "", d: 0, t: 0 };
-  function salvarAjustes() { try { localStorage.setItem("nedle-ajustes", JSON.stringify(cfg)); } catch (e) {} }
+  function salvarAjustes() { cfg.v = 2; try { localStorage.setItem("nedle-ajustes", JSON.stringify(cfg)); } catch (e) {} }
   function mostrarAjustes() { AJUSTES.forEach(a => saidas[a.k].textContent = a.mostra(cfg[a.k])); }
   AJUSTES.forEach(a => {
     const linha = document.createElement("div"); linha.className = "ajuste";
@@ -619,7 +624,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     lista.appendChild(linha);
   });
   mostrarAjustes();
-  document.getElementById("calib-padrao").addEventListener("click", () => { cfg = { ...PADRAO }; salvarAjustes(); mostrarAjustes(); });
+  document.getElementById("calib-padrao").addEventListener("click", () => { cfg = { ...PADRAO, v: 2 }; salvarAjustes(); mostrarAjustes(); });
   const calib = document.getElementById("calib"), veuCalib = document.getElementById("veu");
   let calibAbertaEm = 0;
   const abrirCalib = v => { calib.hidden = !v; veuCalib.hidden = !v; calibAbertaEm = v ? performance.now() : 0; };
