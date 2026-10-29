@@ -72,10 +72,12 @@ img{max-width:100%}
 html, body { overflow: hidden; overscroll-behavior: none; }
 html, body { height: 100%; }
 body { background: var(--panel); color: var(--ink); font-family: var(--f-body); -webkit-tap-highlight-color: transparent; transition: background .35s ease, color .35s ease; }
-.moldura { height: 100%; box-sizing: border-box; display: grid; }
+.moldura { height: 100%; box-sizing: border-box; position: relative; overflow: hidden; }
 /* teste: o afinador ocupa a tela inteira, sem moldura, sem grade e sem borda */
+/* no iPad o aparelho inteiro cresce na mesma proporção (--e), como se fosse um celular maior */
 .aparelho {
-  width: 100%; box-sizing: border-box; background: var(--panel);
+  width: calc(100% / var(--e, 1)); height: calc(100% / var(--e, 1)); transform: scale(var(--e, 1)); transform-origin: 0 0;
+  box-sizing: border-box; background: var(--panel);
   display: grid; grid-template-rows: auto 1fr auto; gap: 16px; position: relative;
   padding-left: max(20px, env(safe-area-inset-left, 0px));
   padding-right: max(20px, env(safe-area-inset-right, 0px));
@@ -176,7 +178,7 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 /* abertura: só a logo no centro, sem moldura */
 .abertura { position: fixed; inset: 0; z-index: 30; background: var(--panel); display: grid; place-content: center; justify-items: center; gap: 18px; transition: opacity .45s ease; }
 .abertura.saindo { opacity: 0; }
-.abertura-logo { pointer-events: none; animation: surgir .5s ease-out both; }
+.abertura-logo { pointer-events: none; animation: surgir .5s ease-out both; zoom: var(--e, 1); }
 @keyframes surgir { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
 /* lâmpada do display: acende piscando, como num rádio antigo */
 .anel { opacity: 0; transition: opacity .18s ease-out; }
@@ -234,6 +236,16 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
 
 <script>
 (() => {
+  // escala do aparelho: 1 no celular; no iPad cresce até caber, mantendo a proporção do celular
+  let E = 1;
+  function escalar() {
+    E = Math.max(1, Math.min(2.2, Math.min(innerWidth / 440, innerHeight / 800)));
+    document.documentElement.style.setProperty("--e", E.toFixed(3));
+  }
+  escalar();
+  addEventListener("resize", escalar);
+  // medidas da tela convertidas para a medida do aparelho
+  const rr = el => { const r = el.getBoundingClientRect(); return { left: r.left / E, right: r.right / E, top: r.top / E, bottom: r.bottom / E, width: r.width / E, height: r.height / E }; };
   const NS = "http://www.w3.org/2000/svg";
   const dial = document.getElementById("dial");
   // pivô na base do mostrador, logo acima da nota; agulha longa até a escala
@@ -691,8 +703,8 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
   const caixa = dial.parentElement;
   function descer() {
     dial.style.transform = "";
-    const livre = (caixa.clientHeight - dial.getBoundingClientRect().height) / 2;
-    const passo = Math.max(0, Math.min(dial.getBoundingClientRect().height * .15, livre * .6));
+    const livre = (caixa.clientHeight - rr(dial).height) / 2;
+    const passo = Math.max(0, Math.min(rr(dial).height * .15, livre * .6));
     dial.style.transform = `translateY(${passo}px)`;
   }
   addEventListener("resize", descer);
@@ -715,9 +727,9 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     if (!alt) return;
     traco.style.height = alt + "px";
     sub.style.transform = "translateX(-50%)";
-    const topo = traco.getBoundingClientRect().bottom - alt; // linha de cima do "d" e do "l"
+    const topo = rr(traco).bottom - alt; // linha de cima do "d" e do "l"
     const capa = parseFloat(getComputedStyle(sub).fontSize) * .15; // folga do texto acima das maiúsculas
-    const dy = topo - capa - sub.getBoundingClientRect().top;
+    const dy = topo - capa - rr(sub).top;
     sub.style.transform = `translate(-50%, ${dy.toFixed(1)}px)`;
     // botões de cor: começam na tinta do primeiro "e" e terminam na do último
     // mede a tinta real do "e" desenhando a letra e procurando os pixels pintados
@@ -729,10 +741,10 @@ body { background: var(--panel); color: var(--ink); font-family: var(--f-body); 
     let esq = cv.width, dir = -1;
     for (let x = 0; x < cv.width; x++) for (let y = 0; y < cv.height; y++) if (px[(y * cv.width + x) * 4 + 3] > 60) { if (x < esq) esq = x; if (x > dir) dir = x; break; }
     const lsb = esq - ox, rsbInk = dir + 1 - ox; // início e fim da tinta medidos a partir do ponto onde a letra começa
-    const e1 = document.getElementById("e1").getBoundingClientRect(), e2 = document.querySelector(".ultimo").getBoundingClientRect();
+    const e1 = rr(document.getElementById("e1")), e2 = rr(document.querySelector(".ultimo"));
     const aro = 1.5; // o aro do botão fica por fora do círculo
     const ini = e1.left + lsb + aro, fim = e2.left + rsbInk - aro;
-    const cores = document.querySelector(".cores"), pe = document.querySelector(".logo-pe").getBoundingClientRect();
+    const cores = document.querySelector(".cores"), pe = rr(document.querySelector(".logo-pe"));
     const folga = 5; // o botão visível fica 5 px para dentro da área de toque
     cores.style.width = (fim - ini + 2 * folga).toFixed(1) + "px";
     cores.style.marginRight = (pe.right - (fim + folga)).toFixed(1) + "px";
