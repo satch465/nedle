@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#E3DECD">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Alvo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="icon" href="icone-192.png">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;height:100%}
+body{margin:0;font:14px/1.4 -apple-system,system-ui,sans-serif}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>Alvo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a tela inteira é o painel; no meio, uma janela cavada com o alvo em cima (menor) e onde você está embaixo (maior). Visual Braun claro, uma cor de destaque. */
+:root {
+  --panel: #E3DECD; --poco: #DFDAC8; --ink: #23211C; --ink-2: #6A6555;
+  --accent: #DC5019; --luz: #FFC66E;
+  --shade: rgba(70,60,40,.40); --glow: rgba(255,255,255,.80);
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+body { background: var(--panel); color: var(--ink); -webkit-tap-highlight-color: transparent; }
+* { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+.painel {
+  box-sizing: border-box; height: 100%; display: grid; place-items: center; position: relative;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px;
+}
+/* janela cavada no painel, como o display do Nedle */
+.janela {
+  position: relative; width: min(100%, 420px); aspect-ratio: 1 / 1; border-radius: 26px; overflow: hidden;
+  background: var(--poco);
+  box-shadow: inset 6px 7px 14px var(--shade), inset -5px -6px 12px var(--glow);
+  display: grid; place-content: center; justify-items: center; gap: 6px;
+}
+/* lâmpada quente que acende quando afina */
+.janela::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--luz) 62%, transparent) 0%, color-mix(in srgb, var(--luz) 26%, transparent) 55%, transparent 100%);
+  opacity: 0; transition: opacity .25s ease-out;
+}
+.janela.afinado::before { opacity: 1; }
+
+.num { position: relative; font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1; transition: color .2s ease, opacity .35s ease, text-shadow .25s ease; }
+/* o "Hz" fica fora da conta do centro: os dois números centram pelos algarismos */
+.num small { position: absolute; left: 100%; bottom: .12em; font-family: var(--f-mono); font-weight: 500; font-size: 13px; letter-spacing: .04em; color: var(--ink-2); margin-left: .4em; line-height: 1; }
+.alvo { font-family: var(--f-mono); font-weight: 500; font-size: clamp(26px, 8vw, 34px); letter-spacing: .02em; color: var(--ink-2); }
+.atual { font-family: var(--f-display); font-weight: 600; font-size: clamp(64px, 21vw, 96px); letter-spacing: -.03em; color: var(--ink); }
+.janela.afinado .atual { color: var(--accent); text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+.janela.afinado .alvo { color: var(--ink); }
+.janela.parado .num { opacity: .45; }
+.janela.afinado.parado .num { opacity: 1; } /* afinou e a corda parou: continua aceso */
+
+.aviso {
+  position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  padding-inline: 24px; text-align: center; pointer-events: none;
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; color: var(--ink-2); line-height: 1.4;
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="painel">
+  <div class="janela" id="janela" role="status" aria-live="off" aria-label="Afinador">
+    <div class="num alvo" id="alvo">—</div>
+    <div class="num atual" id="atual">—</div>
+  </div>
+  <p class="aviso" id="aviso" hidden></p>
+</main>
+
+<script>
+(() => {
+  // o mesmo motor do Nedle: McLeod (NSDF) com interpolação, mediana, histerese de nota e faixa de afinado de ±3 cents
+  const REF = 440;
+  const F_MIN = 38, F_MAX = 1400;
+  const SENS = 0.0018, CLAREZA = 0.6, ESTAB = 5, FAIXA = 3, SILENCIO_MS = 420;
+  const fmt = n => n.toFixed(1).replace(".", ",");
+  const hzDe = m => REF * Math.pow(2, (m - 69) / 12);
+
+  const janelaEl = document.getElementById("janela"), elAlvo = document.getElementById("alvo"), elAtual = document.getElementById("atual"), elAviso = document.getElementById("aviso");
+
+  let modo = "iniciando"; // iniciando | toque | ouvindo | bloqueado | demo
+  let actx = null, analyser = null, buf = null, sq = null, ultimoRms = 0;
+  let notaMidi = null, mSuave = null, ultimoSom = 0, ultimoAudivel = 0, parado = false;
+  const leituras = [];
+
+  function detectar(x, sr) {
+    const N = x.length;
+    let soma = 0; for (let i = 0; i < N; i++) soma += x[i] * x[i];
+    ultimoRms = Math.sqrt(soma / N);
+    if (ultimoRms < SENS) return null;
+    const W = N >> 1;
+    const tMin = Math.max(2, Math.floor(sr / F_MAX)), tMax = Math.min(N - W - 1, Math.ceil(sr / F_MIN));
+    sq[0] = 0; for (let i = 0; i < N; i++) sq[i + 1] = sq[i] + x[i] * x[i];
+    const e0 = sq[W];
+    const nsdf = new Float32Array(tMax + 2);
+    for (let t = tMin; t <= tMax + 1; t++) {
+      let r = 0;
+      for (let j = 0; j < W; j++) r += x[j] * x[j + t];
+      const m = e0 + (sq[W + t] - sq[t]);
+      nsdf[t] = m > 0 ? 2 * r / m : 0;
+    }
+    const picos = []; let dentro = false, melhorT = 0, melhorV = -1;
+    for (let t = tMin + 1; t <= tMax; t++) {
+      if (nsdf[t - 1] <= 0 && nsdf[t] > 0) { dentro = true; melhorV = -1; }
+      if (dentro && nsdf[t] > melhorV && nsdf[t] >= nsdf[t - 1] && nsdf[t] >= nsdf[t + 1]) { melhorV = nsdf[t]; melhorT = t; }
+      if (dentro && nsdf[t - 1] > 0 && nsdf[t] <= 0) { dentro = false; if (melhorV > 0) picos.push([melhorT, melhorV]); }
+    }
+    if (dentro && melhorV > 0) picos.push([melhorT, melhorV]);
+    if (!picos.length) return null;
+    const maior = Math.max(...picos.map(p => p[1]));
+    const escolhido = picos.find(p => p[1] >= maior * 0.9);
+    if (!escolhido || escolhido[1] < CLAREZA) return null;
+    const t = escolhido[0], a = nsdf[t - 1], b = nsdf[t], c = nsdf[t + 1];
+    const den = a - 2 * b + c;
+    return sr / (den !== 0 ? t + 0.5 * (a - c) / den : t);
+  }
+  const mediana = arr => { const s = [...arr].sort((p, q) => p - q); return s[s.length >> 1]; };
+
+  function analisar(agora) {
+    analyser.getFloatTimeDomainData(buf);
+    const f = detectar(buf, actx.sampleRate);
+    if (f) {
+      const m = 69 + 12 * Math.log2(f / REF);
+      if (leituras.length && Math.abs(m - leituras[leituras.length - 1]) > 0.8) leituras.length = 0; // outra corda: responde na hora
+      leituras.push(m); while (leituras.length > ESTAB) leituras.shift();
+      const med = mediana(leituras);
+      if (notaMidi === null || Math.abs(med - notaMidi) > 0.62) notaMidi = Math.round(med); // só troca de nota passando bem da fronteira
+      mSuave = med; ultimoSom = agora; parado = false;
+    }
+    if (ultimoRms >= SENS * 0.6) ultimoAudivel = agora;
+    if (agora - Math.max(ultimoSom, ultimoAudivel) > SILENCIO_MS) { leituras.length = 0; parado = true; }
+  }
+
+  function aviso(txt) { elAviso.hidden = !txt; elAviso.textContent = txt || ""; }
+
+  async function ligarMicrofone() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw { name: "SemMicrofone" };
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = actx.createAnalyser(); analyser.fftSize = 4096;
+    actx.createMediaStreamSource(stream).connect(analyser);
+    buf = new Float32Array(analyser.fftSize); sq = new Float64Array(analyser.fftSize + 1);
+    if (actx.state !== "running") { try { await actx.resume(); } catch (e) {} }
+    modo = actx.state === "running" ? "ouvindo" : "toque";
+    aviso(modo === "toque" ? "Toque na tela para ligar o microfone" : "");
+    telaAcesa();
+  }
+  let trava = null;
+  async function telaAcesa() {
+    try { if (navigator.wakeLock && !trava) { trava = await navigator.wakeLock.request("screen"); trava.addEventListener("release", () => { trava = null; }); } } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && modo === "ouvindo") { telaAcesa(); if (actx && actx.state !== "running") actx.resume().catch(() => {}); }
+  });
+  async function iniciar() {
+    const dentroDoClaude = window.self !== window.top; // no artefato o microfone é bloqueado
+    try { await ligarMicrofone(); }
+    catch (e) {
+      if (dentroDoClaude || e.name === "SemMicrofone") { modo = "demo"; aviso("Demonstração · o microfone funciona na versão web"); }
+      else if (e.name === "NotAllowedError") { modo = "bloqueado"; aviso("Microfone bloqueado. Libere em Ajustes › Safari › Microfone"); }
+      else { modo = "toque"; aviso("Toque na tela para ligar o microfone"); }
+    }
+  }
+  document.addEventListener("pointerdown", async () => {
+    if (modo !== "toque") return;
+    if (actx) { try { await actx.resume(); } catch (e) {} if (actx.state === "running") { modo = "ouvindo"; aviso(""); telaAcesa(); } }
+    else iniciar();
+  });
+  document.addEventListener("gesturestart", e => e.preventDefault());
+  document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+  document.addEventListener("contextmenu", e => e.preventDefault());
+
+  // demonstração: as seis cordas do violão, cada uma chegando no tom
+  const CORDAS = [40, 45, 50, 55, 59, 64];
+  let dCorda = 0, dFase = "afinando", dT0 = performance.now(), dDesvio = -30;
+  function demo(agora) {
+    const t = (agora - dT0) / 1000; let c;
+    if (dFase === "afinando") { c = dDesvio * Math.max(0, 1 - t / 3.2) + (Math.random() - .5) * 1.2; if (t > 3.4) { dFase = "afinado"; dT0 = agora; } }
+    else { c = (Math.random() - .5) * .8; if (t > 1.8) { dCorda = (dCorda + 1) % CORDAS.length; dDesvio = (Math.random() < .5 ? -1 : 1) * (18 + Math.random() * 30); dT0 = agora; dFase = "afinando"; } }
+    notaMidi = CORDAS[dCorda]; mSuave = notaMidi + c / 100; parado = false;
+  }
+
+  // toque tátil ao afinar (Android: vibração; iPhone: o interruptor escondido)
+  const tatil = document.createElement("label");
+  tatil.innerHTML = '<input type="checkbox" switch>';
+  tatil.style.cssText = "position:fixed;left:-9999px;width:1px;height:1px;overflow:hidden";
+  tatil.setAttribute("aria-hidden", "true");
+  document.body.appendChild(tatil);
+  function vibrar() {
+    if (modo !== "ouvindo") return;
+    try { if (navigator.vibrate && navigator.vibrate(40)) return; } catch (e) {}
+    try { tatil.click(); } catch (e) {}
+  }
+
+  // o número de baixo anda com peso (como a agulha), para os décimos não piscarem
+  let mostrado = null, notaMostrada = null, ultimo = performance.now(), ultimoTexto = 0;
+  let afinadoDesde = null, foraDesde = null, firmeAntes = false;
+  function passo(agora) {
+    const dt = Math.min(.05, (agora - ultimo) / 1000); ultimo = agora;
+    if (modo === "demo") demo(agora);
+    else if (modo === "ouvindo") analisar(agora);
+
+    if (notaMidi !== null && mSuave !== null) {
+      const cents = (mSuave - notaMidi) * 100;
+      if (notaMidi !== notaMostrada) { notaMostrada = notaMidi; mostrado = mSuave; afinadoDesde = null; foraDesde = null; }
+      if (!parado) {
+        if (Math.abs(cents) <= FAIXA) { if (afinadoDesde === null) afinadoDesde = agora; foraDesde = null; }
+        else if (Math.abs(cents) > FAIXA * 2) { if (foraDesde === null) foraDesde = agora; if (agora - foraDesde > 150) afinadoDesde = null; }
+        else foraDesde = null;
+      }
+      const firme = afinadoDesde !== null && agora - afinadoDesde > 220;
+      if (firme && !firmeAntes) vibrar();
+      firmeAntes = firme;
+      // dentro da faixa, o número de baixo encosta no alvo
+      const destino = afinadoDesde !== null ? notaMidi : mSuave;
+      if (!parado) mostrado += (destino - mostrado) * (1 - Math.exp(-dt / 0.12));
+      janelaEl.classList.toggle("afinado", firme);
+      janelaEl.classList.toggle("parado", parado);
+      if (agora - ultimoTexto > 66) { // até 15 trocas por segundo
+        ultimoTexto = agora;
+        elAlvo.innerHTML = `${fmt(hzDe(notaMidi))}<small>Hz</small>`;
+        elAtual.innerHTML = `${fmt(hzDe(mostrado))}<small>Hz</small>`;
+      }
+    }
+    requestAnimationFrame(passo);
+  }
+  iniciar();
+  requestAnimationFrame(passo);
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
