@@ -1,6 +1,6 @@
 // Guarda o app no iPhone para abrir mesmo sem internet.
 // Ao publicar uma versão nova, troque o número abaixo para o iPhone baixar de novo.
-const VERSAO = "nedle-20";
+const VERSAO = "nedle-21";
 const ARQUIVOS = ["./", "index.html", "manifest.webmanifest", "icone-180.png", "icone-192.png", "icone-512.png"];
 
 self.addEventListener("install", e => {
